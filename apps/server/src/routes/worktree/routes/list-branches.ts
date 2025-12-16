@@ -53,11 +53,36 @@ export function createListBranchesHandler() {
           isRemote: false,
         }));
 
+      // Get ahead/behind count for current branch
+      let aheadCount = 0;
+      let behindCount = 0;
+      try {
+        // First check if there's a remote tracking branch
+        const { stdout: upstreamOutput } = await execAsync(
+          `git rev-parse --abbrev-ref ${currentBranch}@{upstream}`,
+          { cwd: worktreePath }
+        );
+
+        if (upstreamOutput.trim()) {
+          const { stdout: aheadBehindOutput } = await execAsync(
+            `git rev-list --left-right --count ${currentBranch}@{upstream}...HEAD`,
+            { cwd: worktreePath }
+          );
+          const [behind, ahead] = aheadBehindOutput.trim().split(/\s+/).map(Number);
+          aheadCount = ahead || 0;
+          behindCount = behind || 0;
+        }
+      } catch {
+        // No upstream branch set, that's okay
+      }
+
       res.json({
         success: true,
         result: {
           currentBranch,
           branches,
+          aheadCount,
+          behindCount,
         },
       });
     } catch (error) {

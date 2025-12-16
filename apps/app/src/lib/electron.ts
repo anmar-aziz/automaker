@@ -1187,6 +1187,8 @@ function createMockWorktreeAPI(): WorktreeAPI {
             { name: "develop", isCurrent: false, isRemote: false },
             { name: "feature/example", isCurrent: false, isRemote: false },
           ],
+          aheadCount: 2,
+          behindCount: 0,
         },
       };
     },

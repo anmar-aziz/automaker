@@ -23,6 +23,7 @@ import {
   ExternalLink,
   ChevronDown,
   Download,
+  Upload,
   GitBranchPlus,
   Check,
   Search,
@@ -65,9 +66,12 @@ export function WorktreeSelector({
 }: WorktreeSelectorProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isPulling, setIsPulling] = useState(false);
+  const [isPushing, setIsPushing] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
   const [worktrees, setWorktrees] = useState<WorktreeInfo[]>([]);
   const [branches, setBranches] = useState<BranchInfo[]>([]);
+  const [aheadCount, setAheadCount] = useState(0);
+  const [behindCount, setBehindCount] = useState(0);
   const [isLoadingBranches, setIsLoadingBranches] = useState(false);
   const [branchFilter, setBranchFilter] = useState("");
   const currentWorktree = useAppStore((s) => s.getCurrentWorktree(projectPath));
@@ -106,6 +110,8 @@ export function WorktreeSelector({
       const result = await api.worktree.listBranches(worktreePath);
       if (result.success && result.result) {
         setBranches(result.result.branches);
+        setAheadCount(result.result.aheadCount || 0);
+        setBehindCount(result.result.behindCount || 0);
       }
     } catch (error) {
       console.error("Failed to fetch branches:", error);
@@ -169,6 +175,32 @@ export function WorktreeSelector({
       toast.error("Failed to pull latest changes");
     } finally {
       setIsPulling(false);
+    }
+  };
+
+  const handlePush = async (worktree: WorktreeInfo) => {
+    if (isPushing) return;
+    setIsPushing(true);
+    try {
+      const api = getElectronAPI();
+      if (!api?.worktree?.push) {
+        toast.error("Push API not available");
+        return;
+      }
+      const result = await api.worktree.push(worktree.path);
+      if (result.success && result.result) {
+        toast.success(result.result.message);
+        // Refresh to update ahead/behind counts
+        fetchBranches(worktree.path);
+        fetchWorktrees();
+      } else {
+        toast.error(result.error || "Failed to push changes");
+      }
+    } catch (error) {
+      console.error("Push failed:", error);
+      toast.error("Failed to push changes");
+    } finally {
+      setIsPushing(false);
     }
   };
 
@@ -272,6 +304,38 @@ export function WorktreeSelector({
                   ));
                 })()}
               </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                Sync
+              </DropdownMenuLabel>
+              {/* Pull option */}
+              <DropdownMenuItem
+                onClick={() => handlePull(worktree)}
+                disabled={isPulling}
+                className="text-xs"
+              >
+                <Download className={cn("w-3.5 h-3.5 mr-2", isPulling && "animate-pulse")} />
+                {isPulling ? "Pulling..." : "Pull"}
+                {behindCount > 0 && (
+                  <span className="ml-auto text-[10px] bg-muted px-1.5 py-0.5 rounded">
+                    {behindCount} behind
+                  </span>
+                )}
+              </DropdownMenuItem>
+              {/* Push option */}
+              <DropdownMenuItem
+                onClick={() => handlePush(worktree)}
+                disabled={isPushing || aheadCount === 0}
+                className="text-xs"
+              >
+                <Upload className={cn("w-3.5 h-3.5 mr-2", isPushing && "animate-pulse")} />
+                {isPushing ? "Pushing..." : "Push"}
+                {aheadCount > 0 && (
+                  <span className="ml-auto text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded">
+                    {aheadCount} ahead
+                  </span>
+                )}
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               {worktree.hasChanges && (
                 <DropdownMenuItem

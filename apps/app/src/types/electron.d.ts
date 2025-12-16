@@ -765,6 +765,8 @@ export interface WorktreeAPI {
         isCurrent: boolean;
         isRemote: boolean;
       }>;
+      aheadCount: number;
+      behindCount: number;
     };
     error?: string;
   }>;
