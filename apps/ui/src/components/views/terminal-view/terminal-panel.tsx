@@ -668,8 +668,8 @@ export function TerminalPanel({
         // Use event.code for keyboard-layout-independent key detection
         const code = event.code;
 
-        // Ctrl+Shift+D - Split right (uses Ctrl+Shift to avoid Alt+D readline conflict)
-        if (event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey && code === 'KeyD') {
+        // Alt+D - Split right
+        if (event.altKey && !event.ctrlKey && !event.shiftKey && !event.metaKey && code === 'KeyD') {
           event.preventDefault();
           if (canTrigger) {
             lastShortcutTimeRef.current = now;
@@ -678,8 +678,8 @@ export function TerminalPanel({
           return false;
         }
 
-        // Ctrl+Shift+S - Split down (uses Ctrl+Shift to avoid readline conflicts)
-        if (event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey && code === 'KeyS') {
+        // Alt+S - Split down
+        if (event.altKey && !event.ctrlKey && !event.shiftKey && !event.metaKey && code === 'KeyS') {
           event.preventDefault();
           if (canTrigger) {
             lastShortcutTimeRef.current = now;
@@ -688,8 +688,8 @@ export function TerminalPanel({
           return false;
         }
 
-        // Ctrl+Shift+W - Close terminal (uses Ctrl+Shift to avoid readline conflicts)
-        if (event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey && code === 'KeyW') {
+        // Alt+W - Close terminal
+        if (event.altKey && !event.ctrlKey && !event.shiftKey && !event.metaKey && code === 'KeyW') {
           event.preventDefault();
           if (canTrigger) {
             lastShortcutTimeRef.current = now;
@@ -698,8 +698,8 @@ export function TerminalPanel({
           return false;
         }
 
-        // Ctrl+Shift+T - New terminal tab (uses Ctrl+Shift for consistency)
-        if (event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey && code === 'KeyT') {
+        // Alt+T - New terminal tab
+        if (event.altKey && !event.ctrlKey && !event.shiftKey && !event.metaKey && code === 'KeyT') {
           event.preventDefault();
           if (canTrigger && onNewTabRef.current) {
             lastShortcutTimeRef.current = now;
@@ -1757,7 +1757,7 @@ export function TerminalPanel({
               e.stopPropagation();
               onSplitHorizontal();
             }}
-            title="Split Right (Cmd+D)"
+            title="Split Right (Alt+D)"
           >
             <SplitSquareHorizontal className="h-3 w-3" />
           </Button>
@@ -1769,7 +1769,7 @@ export function TerminalPanel({
               e.stopPropagation();
               onSplitVertical();
             }}
-            title="Split Down (Cmd+Shift+D)"
+            title="Split Down (Alt+S)"
           >
             <SplitSquareVertical className="h-3 w-3" />
           </Button>
@@ -1799,7 +1799,7 @@ export function TerminalPanel({
               e.stopPropagation();
               onClose();
             }}
-            title="Close Terminal (Cmd+W)"
+            title="Close Terminal (Alt+W)"
           >
             <X className="h-3 w-3" />
           </Button>

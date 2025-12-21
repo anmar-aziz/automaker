@@ -297,11 +297,34 @@ terminalWss.on(
 
         switch (msg.type) {
           case "input":
+            // Validate input data type and length
+            if (typeof msg.data !== "string") {
+              ws.send(JSON.stringify({ type: "error", message: "Invalid input type" }));
+              break;
+            }
+            // Limit input size to 1MB to prevent memory issues
+            if (msg.data.length > 1024 * 1024) {
+              ws.send(JSON.stringify({ type: "error", message: "Input too large" }));
+              break;
+            }
             // Write user input to terminal
             terminalService.write(sessionId, msg.data);
             break;
 
           case "resize":
+            // Validate resize dimensions are positive integers within reasonable bounds
+            if (
+              typeof msg.cols !== "number" ||
+              typeof msg.rows !== "number" ||
+              !Number.isInteger(msg.cols) ||
+              !Number.isInteger(msg.rows) ||
+              msg.cols < 1 ||
+              msg.cols > 1000 ||
+              msg.rows < 1 ||
+              msg.rows > 500
+            ) {
+              break; // Silently ignore invalid resize requests
+            }
             // Resize terminal with deduplication and rate limiting
             if (msg.cols && msg.rows) {
               const now = Date.now();

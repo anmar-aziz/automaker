@@ -2,6 +2,7 @@
  * Common utilities and state for terminal routes
  */
 
+import { randomBytes } from "crypto";
 import { createLogger } from "../../lib/logger.js";
 import type { Request, Response, NextFunction } from "express";
 import { getTerminalService } from "../../services/terminal-service.js";
@@ -49,12 +50,10 @@ export function getTokenData(
 }
 
 /**
- * Generate a secure random token
+ * Generate a cryptographically secure random token
  */
 export function generateToken(): string {
-  return `term-${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2, 17)}${Math.random().toString(36).slice(2, 17)}`;
+  return `term-${randomBytes(32).toString("base64url")}`;
 }
 
 /**
