@@ -76,7 +76,7 @@ export function createValidateIssueHandler() {
 
       // Create abort controller with 2 minute timeout for validation
       const abortController = new AbortController();
-      const VALIDATION_TIMEOUT_MS = 120000; // 2 minutes
+      const VALIDATION_TIMEOUT_MS = 360000; // 6 minutes
       timeoutId = setTimeout(() => {
         logger.warn(`Validation timeout reached after ${VALIDATION_TIMEOUT_MS}ms`);
         abortController.abort();

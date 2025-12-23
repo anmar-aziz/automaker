@@ -8,6 +8,8 @@ import {
   Circle,
   X,
   Wand2,
+  GitPullRequest,
+  User,
 } from 'lucide-react';
 import {
   getElectronAPI,
@@ -369,7 +371,7 @@ export function GitHubIssuesView() {
 
             {/* Labels */}
             {selectedIssue.labels.length > 0 && (
-              <div className="flex items-center gap-2 mb-6 flex-wrap">
+              <div className="flex items-center gap-2 mb-4 flex-wrap">
                 {selectedIssue.labels.map((label) => (
                   <span
                     key={label.name}
@@ -383,6 +385,75 @@ export function GitHubIssuesView() {
                     {label.name}
                   </span>
                 ))}
+              </div>
+            )}
+
+            {/* Assignees */}
+            {selectedIssue.assignees && selectedIssue.assignees.length > 0 && (
+              <div className="flex items-center gap-2 mb-4">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Assigned to:</span>
+                <div className="flex items-center gap-2">
+                  {selectedIssue.assignees.map((assignee) => (
+                    <span
+                      key={assignee.login}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20"
+                    >
+                      {assignee.avatarUrl && (
+                        <img
+                          src={assignee.avatarUrl}
+                          alt={assignee.login}
+                          className="h-4 w-4 rounded-full"
+                        />
+                      )}
+                      {assignee.login}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Linked Pull Requests */}
+            {selectedIssue.linkedPRs && selectedIssue.linkedPRs.length > 0 && (
+              <div className="mb-6 p-3 rounded-lg bg-muted/30 border border-border">
+                <div className="flex items-center gap-2 mb-2">
+                  <GitPullRequest className="h-4 w-4 text-purple-500" />
+                  <span className="text-sm font-medium">Linked Pull Requests</span>
+                </div>
+                <div className="space-y-2">
+                  {selectedIssue.linkedPRs.map((pr) => (
+                    <div key={pr.number} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className={cn(
+                            'px-1.5 py-0.5 text-xs font-medium rounded',
+                            pr.state === 'open'
+                              ? 'bg-green-500/10 text-green-500'
+                              : pr.state === 'merged'
+                                ? 'bg-purple-500/10 text-purple-500'
+                                : 'bg-red-500/10 text-red-500'
+                          )}
+                        >
+                          {pr.state === 'open'
+                            ? 'Open'
+                            : pr.state === 'merged'
+                              ? 'Merged'
+                              : 'Closed'}
+                        </span>
+                        <span className="text-muted-foreground">#{pr.number}</span>
+                        <span className="truncate">{pr.title}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 flex-shrink-0"
+                        onClick={() => handleOpenInGitHub(pr.url)}
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -454,23 +525,38 @@ function IssueRow({ issue, isSelected, onClick, onOpenExternal, formatDate }: Is
           </span>
         </div>
 
-        {issue.labels.length > 0 && (
-          <div className="flex items-center gap-1 mt-2 flex-wrap">
-            {issue.labels.map((label) => (
-              <span
-                key={label.name}
-                className="px-1.5 py-0.5 text-[10px] font-medium rounded-full"
-                style={{
-                  backgroundColor: `#${label.color}20`,
-                  color: `#${label.color}`,
-                  border: `1px solid #${label.color}40`,
-                }}
-              >
-                {label.name}
-              </span>
-            ))}
-          </div>
-        )}
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          {/* Labels */}
+          {issue.labels.map((label) => (
+            <span
+              key={label.name}
+              className="px-1.5 py-0.5 text-[10px] font-medium rounded-full"
+              style={{
+                backgroundColor: `#${label.color}20`,
+                color: `#${label.color}`,
+                border: `1px solid #${label.color}40`,
+              }}
+            >
+              {label.name}
+            </span>
+          ))}
+
+          {/* Linked PR indicator */}
+          {issue.linkedPRs && issue.linkedPRs.length > 0 && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-purple-500/10 text-purple-500 border border-purple-500/20">
+              <GitPullRequest className="h-3 w-3" />
+              {issue.linkedPRs.length} PR{issue.linkedPRs.length > 1 ? 's' : ''}
+            </span>
+          )}
+
+          {/* Assignee indicator */}
+          {issue.assignees && issue.assignees.length > 0 && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20">
+              <User className="h-3 w-3" />
+              {issue.assignees.map((a) => a.login).join(', ')}
+            </span>
+          )}
+        </div>
       </div>
 
       <Button

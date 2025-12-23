@@ -118,6 +118,19 @@ export interface GitHubLabel {
 
 export interface GitHubAuthor {
   login: string;
+  avatarUrl?: string;
+}
+
+export interface GitHubAssignee {
+  login: string;
+  avatarUrl?: string;
+}
+
+export interface LinkedPullRequest {
+  number: number;
+  title: string;
+  state: string;
+  url: string;
 }
 
 export interface GitHubIssue {
@@ -129,6 +142,8 @@ export interface GitHubIssue {
   labels: GitHubLabel[];
   url: string;
   body: string;
+  assignees: GitHubAssignee[];
+  linkedPRs?: LinkedPullRequest[];
 }
 
 export interface GitHubPR {
