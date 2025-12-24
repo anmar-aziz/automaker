@@ -109,8 +109,7 @@ In the Discord, you can:
 - 🚀 Show off projects built with AI agents
 - 🤝 Collaborate with other developers and contributors
 
-👉 **Join the Discord:**  
-https://discord.gg/jjem7aEDKU
+👉 **Join the Discord:** [Agentic Jumpstart Discord](https://discord.gg/jjem7aEDKU)
 
 ---
 
@@ -134,7 +133,7 @@ cd automaker
 # 2. Install dependencies
 npm install
 
-# 3. Build shared packages (REQUIRED before first run)
+# 3. Build shared packages (Now can be skipped npm install / run dev does it automaticly)
 npm run build:packages
 
 # 4. Set up authentication (skip if using Claude Code CLI)
@@ -198,7 +197,7 @@ npm run dev:web
 
 ### Building for Production
 
-**Web Application:**
+#### Web Application
 
 ```bash
 # Build for web deployment (uses Vite)
@@ -208,7 +207,7 @@ npm run build
 npm run start
 ```
 
-**Desktop Application:**
+#### Desktop Application
 
 ```bash
 # Build for current platform (macOS/Windows/Linux)
@@ -222,7 +221,7 @@ npm run build:electron:linux   # Linux (AppImage + DEB, x64)
 # Output directory: apps/ui/release/
 ```
 
-**Docker Deployment:**
+#### Docker Deployment
 
 ```bash
 # Build and run with Docker Compose (recommended for security)
@@ -234,14 +233,14 @@ docker-compose up -d
 
 ### Testing
 
-**End-to-End Tests (Playwright):**
+#### End-to-End Tests (Playwright)
 
 ```bash
 npm run test            # Headless E2E tests
 npm run test:headed     # Browser visible E2E tests
 ```
 
-**Unit Tests (Vitest):**
+#### Unit Tests (Vitest)
 
 ```bash
 npm run test:server              # Server unit tests
@@ -250,7 +249,7 @@ npm run test:packages            # All shared package tests
 npm run test:all                 # Packages + server tests
 ```
 
-**Test Configuration:**
+#### Test Configuration
 
 - E2E tests run on ports 3007 (UI) and 3008 (server)
 - Automatically starts test servers before running
@@ -266,40 +265,40 @@ npm run lint
 
 ### Environment Configuration
 
-**Authentication (if not using Claude Code CLI):**
+#### Authentication (if not using Claude Code CLI)
 
 - `ANTHROPIC_API_KEY` - Your Anthropic API key for Claude Agent SDK (not needed if using Claude Code CLI)
 
-**Optional - Server:**
+#### Optional - Server
 
 - `PORT` - Server port (default: 3008)
 - `DATA_DIR` - Data storage directory (default: ./data)
 - `ENABLE_REQUEST_LOGGING` - HTTP request logging (default: true)
 
-**Optional - Security:**
+#### Optional - Security
 
 - `AUTOMAKER_API_KEY` - Optional API authentication for the server
 - `ALLOWED_ROOT_DIRECTORY` - Restrict file operations to specific directory
 - `CORS_ORIGIN` - CORS policy (default: \*)
 
-**Optional - Development:**
+#### Optional - Development
 
 - `VITE_SKIP_ELECTRON` - Skip Electron in dev mode
 - `OPEN_DEVTOOLS` - Auto-open DevTools in Electron
 
 ### Authentication Setup
 
-**Option 1: Claude Code CLI (Recommended)**
+#### Option 1: Claude Code CLI (Recommended)
 
 Install and authenticate the Claude Code CLI following the [official quickstart guide](https://code.claude.com/docs/en/quickstart).
 
 Once authenticated, Automaker will automatically detect and use your CLI credentials. No additional configuration needed!
 
-**Option 2: Direct API Key**
+#### Option 2: Direct API Key
 
 If you prefer not to use the CLI, you can provide an Anthropic API key directly using one of these methods:
 
-**2a. Shell Configuration**
+##### 2a. Shell Configuration
 
 Add to your `~/.bashrc` or `~/.zshrc`:
 
@@ -309,7 +308,7 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 
 Then restart your terminal or run `source ~/.bashrc` (or `source ~/.zshrc`).
 
-**2b. .env File**
+##### 2b. .env File
 
 Create a `.env` file in the project root (gitignored):
 
@@ -319,7 +318,7 @@ PORT=3008
 DATA_DIR=./data
 ```
 
-**2c. In-App Storage**
+##### 2c. In-App Storage
 
 The application can store your API key securely in the settings UI. The key is persisted in the `DATA_DIR` directory.
 
@@ -452,7 +451,7 @@ All shortcuts are customizable in Settings. Default shortcuts:
 
 Automaker is built as an npm workspace monorepo with two main applications and seven shared packages:
 
-```
+```text
 automaker/
 ├── apps/
 │   ├── ui/          # React + Vite + Electron frontend
@@ -497,9 +496,11 @@ automaker/
 
 Automaker uses a file-based storage system (no database required):
 
-**Per-Project Data** (stored in `{projectPath}/.automaker/`):
+#### Per-Project Data
 
-```
+Stored in `{projectPath}/.automaker/`:
+
+```text
 .automaker/
 ├── features/              # Feature JSON files and images
 │   └── {featureId}/
@@ -513,9 +514,11 @@ Automaker uses a file-based storage system (no database required):
 └── feature-suggestions.json # AI-generated suggestions
 ```
 
-**Global Data** (stored in `DATA_DIR`, default `./data`):
+#### Global Data
 
-```
+Stored in `DATA_DIR` (default `./data`):
+
+```text
 data/
 ├── settings.json          # Global settings, profiles, shortcuts
 ├── credentials.json       # API keys (encrypted)
@@ -536,7 +539,7 @@ data/
 
 Join the **Agentic Jumpstart** Discord to connect with other builders exploring **agentic coding**:
 
-👉 https://discord.gg/jjem7aEDKU
+👉 [Agentic Jumpstart Discord](https://discord.gg/jjem7aEDKU)
 
 ## License
 
