@@ -32,7 +32,11 @@ import {
 } from '../lib/sdk-options.js';
 import { FeatureLoader } from './feature-loader.js';
 import type { SettingsService } from './settings-service.js';
-import { getAutoLoadClaudeMdSetting, filterClaudeMdFromContext } from '../lib/settings-helpers.js';
+import {
+  getAutoLoadClaudeMdSetting,
+  getEnableSandboxModeSetting,
+  filterClaudeMdFromContext,
+} from '../lib/settings-helpers.js';
 
 const execAsync = promisify(exec);
 
@@ -1833,12 +1837,16 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
         ? options.autoLoadClaudeMd
         : await getAutoLoadClaudeMdSetting(finalProjectPath, this.settingsService, '[AutoMode]');
 
+    // Load enableSandboxMode setting (global setting only)
+    const enableSandboxMode = await getEnableSandboxModeSetting(this.settingsService, '[AutoMode]');
+
     // Build SDK options using centralized configuration for feature implementation
     const sdkOptions = createAutoModeOptions({
       cwd: workDir,
       model: model,
       abortController,
       autoLoadClaudeMd,
+      enableSandboxMode,
     });
 
     // Extract model, maxTurns, and allowedTools from SDK options

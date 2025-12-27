@@ -17,7 +17,11 @@ import { ProviderFactory } from '../providers/provider-factory.js';
 import { createChatOptions, validateWorkingDirectory } from '../lib/sdk-options.js';
 import { PathNotAllowedError } from '@automaker/platform';
 import type { SettingsService } from './settings-service.js';
-import { getAutoLoadClaudeMdSetting, filterClaudeMdFromContext } from '../lib/settings-helpers.js';
+import {
+  getAutoLoadClaudeMdSetting,
+  getEnableSandboxModeSetting,
+  filterClaudeMdFromContext,
+} from '../lib/settings-helpers.js';
 
 interface Message {
   id: string;
@@ -140,12 +144,29 @@ export class AgentService {
     imagePaths?: string[];
     model?: string;
   }) {
+    console.log('[AgentService] sendMessage() called:', {
+      sessionId,
+      messageLength: message?.length,
+      workingDirectory,
+      imageCount: imagePaths?.length || 0,
+      model,
+    });
+
     const session = this.sessions.get(sessionId);
     if (!session) {
+      console.error('[AgentService] ERROR: Session not found:', sessionId);
       throw new Error(`Session ${sessionId} not found`);
     }
 
+    console.log('[AgentService] Session found:', {
+      sessionId,
+      messageCount: session.messages.length,
+      isRunning: session.isRunning,
+      workingDirectory: session.workingDirectory,
+    });
+
     if (session.isRunning) {
+      console.error('[AgentService] ERROR: Agent already running for session:', sessionId);
       throw new Error('Agent is already processing a message');
     }
 
@@ -192,16 +213,19 @@ export class AgentService {
     session.abortController = new AbortController();
 
     // Emit started event so UI can show thinking indicator
+    console.log('[AgentService] Emitting "started" event for session:', sessionId);
     this.emitAgentEvent(sessionId, {
       type: 'started',
     });
 
     // Emit user message event
+    console.log('[AgentService] Emitting "message" event for session:', sessionId);
     this.emitAgentEvent(sessionId, {
       type: 'message',
       message: userMessage,
     });
 
+    console.log('[AgentService] Saving session messages');
     await this.saveSession(sessionId, session.messages);
 
     try {
@@ -211,6 +235,12 @@ export class AgentService {
       // Load autoLoadClaudeMd setting (project setting takes precedence over global)
       const autoLoadClaudeMd = await getAutoLoadClaudeMdSetting(
         effectiveWorkDir,
+        this.settingsService,
+        '[AgentService]'
+      );
+
+      // Load enableSandboxMode setting (global setting only)
+      const enableSandboxMode = await getEnableSandboxModeSetting(
         this.settingsService,
         '[AgentService]'
       );
@@ -239,6 +269,7 @@ export class AgentService {
         systemPrompt: combinedSystemPrompt,
         abortController: session.abortController!,
         autoLoadClaudeMd,
+        enableSandboxMode,
       });
 
       // Extract model, maxTurns, and allowedTools from SDK options
@@ -247,6 +278,7 @@ export class AgentService {
       const allowedTools = sdkOptions.allowedTools as string[] | undefined;
 
       // Get provider for this model
+      console.log('[AgentService] Getting provider for model:', effectiveModel);
       const provider = ProviderFactory.getProviderForModel(effectiveModel);
 
       console.log(
@@ -267,6 +299,7 @@ export class AgentService {
         sdkSessionId: session.sdkSessionId, // Pass SDK session ID for resuming
       };
 
+      console.log('[AgentService] Building prompt with images...');
       // Build prompt content with images
       const { content: promptContent } = await buildPromptWithImages(
         message,
@@ -278,14 +311,32 @@ export class AgentService {
       // Set the prompt in options
       options.prompt = promptContent;
 
+      console.log('[AgentService] Executing query via provider:', {
+        model: effectiveModel,
+        promptLength: typeof promptContent === 'string' ? promptContent.length : 'array',
+        hasConversationHistory: !!conversationHistory.length,
+        sdkSessionId: session.sdkSessionId,
+      });
+
       // Execute via provider
       const stream = provider.executeQuery(options);
+      console.log('[AgentService] Stream created, starting to iterate...');
 
       let currentAssistantMessage: Message | null = null;
       let responseText = '';
       const toolUses: Array<{ name: string; input: unknown }> = [];
+      let messageCount = 0;
 
+      console.log('[AgentService] Entering stream loop...');
       for await (const msg of stream) {
+        messageCount++;
+        console.log(`[AgentService] Stream message #${messageCount}:`, {
+          type: msg.type,
+          subtype: (msg as any).subtype,
+          hasContent: !!(msg as any).message?.content,
+          session_id: msg.session_id,
+        });
+
         // Capture SDK session ID from any message and persist it
         if (msg.session_id && !session.sdkSessionId) {
           session.sdkSessionId = msg.session_id;
@@ -295,6 +346,7 @@ export class AgentService {
         }
 
         if (msg.type === 'assistant') {
+          console.log('[AgentService] Processing assistant message...');
           if (msg.message?.content) {
             for (const block of msg.message.content) {
               if (block.type === 'text') {
@@ -312,6 +364,10 @@ export class AgentService {
                   currentAssistantMessage.content = responseText;
                 }
 
+                console.log(
+                  '[AgentService] Emitting "stream" event, text length:',
+                  responseText.length
+                );
                 this.emitAgentEvent(sessionId, {
                   type: 'stream',
                   messageId: currentAssistantMessage.id,
@@ -325,6 +381,7 @@ export class AgentService {
                 };
                 toolUses.push(toolUse);
 
+                console.log('[AgentService] Tool use detected:', toolUse.name);
                 this.emitAgentEvent(sessionId, {
                   type: 'tool_use',
                   tool: toolUse,
@@ -333,6 +390,7 @@ export class AgentService {
             }
           }
         } else if (msg.type === 'result') {
+          console.log('[AgentService] Result message received, subtype:', (msg as any).subtype);
           if (msg.subtype === 'success' && msg.result) {
             if (currentAssistantMessage) {
               currentAssistantMessage.content = msg.result;
@@ -340,6 +398,7 @@ export class AgentService {
             }
           }
 
+          console.log('[AgentService] Emitting "complete" event');
           this.emitAgentEvent(sessionId, {
             type: 'complete',
             messageId: currentAssistantMessage?.id,
@@ -348,6 +407,8 @@ export class AgentService {
           });
         }
       }
+
+      console.log('[AgentService] Stream loop completed, total messages:', messageCount);
 
       await this.saveSession(sessionId, session.messages);
 
@@ -757,7 +818,13 @@ export class AgentService {
   }
 
   private emitAgentEvent(sessionId: string, data: Record<string, unknown>): void {
+    console.log('[AgentService] emitAgentEvent() called:', {
+      sessionId,
+      eventType: data.type,
+      dataKeys: Object.keys(data),
+    });
     this.events.emit('agent:stream', { sessionId, ...data });
+    console.log('[AgentService] Event emitted to EventEmitter');
   }
 
   private getSystemPrompt(): string {
