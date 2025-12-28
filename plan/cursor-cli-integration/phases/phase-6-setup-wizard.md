@@ -1,6 +1,6 @@
 # Phase 6: UI Setup Wizard
 
-**Status:** `pending`
+**Status:** `completed`
 **Dependencies:** Phase 4 (Routes)
 **Estimated Effort:** Medium (React component)
 
@@ -16,7 +16,7 @@ Add an optional Cursor CLI setup step to the welcome wizard, allowing users to c
 
 ### Task 6.1: Create Cursor Setup Step Component
 
-**Status:** `pending`
+**Status:** `completed`
 
 **File:** `apps/ui/src/components/views/setup-view/steps/cursor-setup-step.tsx`
 
@@ -282,7 +282,7 @@ export default CursorSetupStep;
 
 ### Task 6.2: Update Setup View Steps
 
-**Status:** `pending`
+**Status:** `completed`
 
 **File:** `apps/ui/src/components/views/setup-view.tsx`
 
@@ -369,7 +369,7 @@ function SetupView() {
 
 ### Task 6.3: Add Step Indicator for Optional Steps
 
-**Status:** `pending`
+**Status:** `completed`
 
 Add visual indicator for optional vs required steps in the progress bar.
 

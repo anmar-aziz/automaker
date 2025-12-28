@@ -551,6 +551,19 @@ export interface ElectronAPI {
       user: string | null;
       error?: string;
     }>;
+    getCursorStatus?: () => Promise<{
+      success: boolean;
+      installed?: boolean;
+      version?: string | null;
+      path?: string | null;
+      auth?: {
+        authenticated: boolean;
+        method: string;
+      };
+      installCommand?: string;
+      loginCommand?: string;
+      error?: string;
+    }>;
     onInstallProgress?: (callback: (progress: any) => void) => () => void;
     onAuthProgress?: (callback: (progress: any) => void) => () => void;
   };
