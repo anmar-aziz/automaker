@@ -8,6 +8,9 @@ import type {
   PlanningMode,
   AIProfile,
   MCPServerConfig,
+  FeatureStatusWithPipeline,
+  PipelineConfig,
+  PipelineStep,
 } from '@automaker/types';
 
 // Re-export ThemeMode for convenience
@@ -264,7 +267,7 @@ export interface Feature extends Omit<
   category: string;
   description: string;
   steps: string[]; // Required in UI (not optional)
-  status: 'backlog' | 'in_progress' | 'waiting_approval' | 'verified' | 'completed';
+  status: FeatureStatusWithPipeline;
   images?: FeatureImage[]; // UI-specific base64 images
   imagePaths?: FeatureImagePath[]; // Stricter type than base (no string | union)
   textFilePaths?: FeatureTextFilePath[]; // Text file attachments for context
@@ -345,6 +348,7 @@ export interface TerminalState {
   scrollbackLines: number; // Number of lines to keep in scrollback buffer
   lineHeight: number; // Line height multiplier for terminal text
   maxSessions: number; // Maximum concurrent terminal sessions (server setting)
+  lastActiveProjectPath: string | null; // Last project path to detect route changes vs project switches
 }
 
 // Persisted terminal layout - now includes sessionIds for reconnection
@@ -539,6 +543,9 @@ export interface AppState {
   claudeRefreshInterval: number; // Refresh interval in seconds (default: 60)
   claudeUsage: ClaudeUsage | null;
   claudeUsageLastUpdated: number | null;
+
+  // Pipeline Configuration (per-project, keyed by project path)
+  pipelineConfigByProject: Record<string, PipelineConfig>;
 }
 
 // Claude Usage interface matching the server response
@@ -830,6 +837,7 @@ export interface AppActions {
   setTerminalScrollbackLines: (lines: number) => void;
   setTerminalLineHeight: (lineHeight: number) => void;
   setTerminalMaxSessions: (maxSessions: number) => void;
+  setTerminalLastActiveProjectPath: (projectPath: string | null) => void;
   addTerminalTab: (name?: string) => string;
   removeTerminalTab: (tabId: string) => void;
   setActiveTerminalTab: (tabId: string) => void;
@@ -868,6 +876,21 @@ export interface AppActions {
       planningMode: 'lite' | 'spec' | 'full';
     } | null
   ) => void;
+
+  // Pipeline actions
+  setPipelineConfig: (projectPath: string, config: PipelineConfig) => void;
+  getPipelineConfig: (projectPath: string) => PipelineConfig | null;
+  addPipelineStep: (
+    projectPath: string,
+    step: Omit<PipelineStep, 'id' | 'createdAt' | 'updatedAt'>
+  ) => PipelineStep;
+  updatePipelineStep: (
+    projectPath: string,
+    stepId: string,
+    updates: Partial<Omit<PipelineStep, 'id' | 'createdAt'>>
+  ) => void;
+  deletePipelineStep: (projectPath: string, stepId: string) => void;
+  reorderPipelineSteps: (projectPath: string, stepIds: string[]) => void;
 
   // Reset
   reset: () => void;
@@ -968,6 +991,7 @@ const initialState: AppState = {
     scrollbackLines: 5000,
     lineHeight: 1.0,
     maxSessions: 100,
+    lastActiveProjectPath: null,
   },
   terminalLayoutByProject: {},
   specCreatingForProject: null,
@@ -975,6 +999,10 @@ const initialState: AppState = {
   defaultRequirePlanApproval: false,
   defaultAIProfileId: null,
   pendingPlanApproval: null,
+  claudeRefreshInterval: 60,
+  claudeUsage: null,
+  claudeUsageLastUpdated: null,
+  pipelineConfigByProject: {},
 };
 
 export const useAppStore = create<AppState & AppActions>()(
@@ -2089,6 +2117,8 @@ export const useAppStore = create<AppState & AppActions>()(
             scrollbackLines: current.scrollbackLines,
             lineHeight: current.lineHeight,
             maxSessions: current.maxSessions,
+            // Preserve lastActiveProjectPath - it will be updated separately when needed
+            lastActiveProjectPath: current.lastActiveProjectPath,
           },
         });
       },
@@ -2170,6 +2200,13 @@ export const useAppStore = create<AppState & AppActions>()(
         const clampedMax = Math.max(1, Math.min(500, maxSessions));
         set({
           terminalState: { ...current, maxSessions: clampedMax },
+        });
+      },
+
+      setTerminalLastActiveProjectPath: (projectPath) => {
+        const current = get().terminalState;
+        set({
+          terminalState: { ...current, lastActiveProjectPath: projectPath },
         });
       },
 
@@ -2637,6 +2674,105 @@ export const useAppStore = create<AppState & AppActions>()(
           claudeUsageLastUpdated: usage ? Date.now() : null,
         }),
 
+      // Pipeline actions
+      setPipelineConfig: (projectPath, config) => {
+        set({
+          pipelineConfigByProject: {
+            ...get().pipelineConfigByProject,
+            [projectPath]: config,
+          },
+        });
+      },
+
+      getPipelineConfig: (projectPath) => {
+        return get().pipelineConfigByProject[projectPath] || null;
+      },
+
+      addPipelineStep: (projectPath, step) => {
+        const config = get().pipelineConfigByProject[projectPath] || { version: 1, steps: [] };
+        const now = new Date().toISOString();
+        const newStep: PipelineStep = {
+          ...step,
+          id: `step_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        const newSteps = [...config.steps, newStep].sort((a, b) => a.order - b.order);
+        newSteps.forEach((s, index) => {
+          s.order = index;
+        });
+
+        set({
+          pipelineConfigByProject: {
+            ...get().pipelineConfigByProject,
+            [projectPath]: { ...config, steps: newSteps },
+          },
+        });
+
+        return newStep;
+      },
+
+      updatePipelineStep: (projectPath, stepId, updates) => {
+        const config = get().pipelineConfigByProject[projectPath];
+        if (!config) return;
+
+        const stepIndex = config.steps.findIndex((s) => s.id === stepId);
+        if (stepIndex === -1) return;
+
+        const updatedSteps = [...config.steps];
+        updatedSteps[stepIndex] = {
+          ...updatedSteps[stepIndex],
+          ...updates,
+          updatedAt: new Date().toISOString(),
+        };
+
+        set({
+          pipelineConfigByProject: {
+            ...get().pipelineConfigByProject,
+            [projectPath]: { ...config, steps: updatedSteps },
+          },
+        });
+      },
+
+      deletePipelineStep: (projectPath, stepId) => {
+        const config = get().pipelineConfigByProject[projectPath];
+        if (!config) return;
+
+        const newSteps = config.steps.filter((s) => s.id !== stepId);
+        newSteps.forEach((s, index) => {
+          s.order = index;
+        });
+
+        set({
+          pipelineConfigByProject: {
+            ...get().pipelineConfigByProject,
+            [projectPath]: { ...config, steps: newSteps },
+          },
+        });
+      },
+
+      reorderPipelineSteps: (projectPath, stepIds) => {
+        const config = get().pipelineConfigByProject[projectPath];
+        if (!config) return;
+
+        const stepMap = new Map(config.steps.map((s) => [s.id, s]));
+        const reorderedSteps = stepIds
+          .map((id, index) => {
+            const step = stepMap.get(id);
+            if (!step) return null;
+            return { ...step, order: index, updatedAt: new Date().toISOString() };
+          })
+          .filter((s): s is PipelineStep => s !== null);
+
+        set({
+          pipelineConfigByProject: {
+            ...get().pipelineConfigByProject,
+            [projectPath]: { ...config, steps: reorderedSteps },
+          },
+        });
+      },
+
       // Reset
       reset: () => set(initialState),
     }),
@@ -2721,6 +2857,7 @@ export const useAppStore = create<AppState & AppActions>()(
             activeTabId: state.terminalState?.activeTabId ?? null,
             activeSessionId: state.terminalState?.activeSessionId ?? null,
             maximizedSessionId: state.terminalState?.maximizedSessionId ?? null,
+            lastActiveProjectPath: state.terminalState?.lastActiveProjectPath ?? null,
             // Restore persisted settings
             defaultFontSize: persistedSettings.defaultFontSize ?? 14,
             defaultRunScript: persistedSettings.defaultRunScript ?? '',

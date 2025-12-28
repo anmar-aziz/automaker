@@ -52,6 +52,8 @@ import { createBacklogPlanRoutes } from './routes/backlog-plan/index.js';
 import { cleanupStaleValidations } from './routes/github/routes/validation-common.js';
 import { createMCPRoutes } from './routes/mcp/index.js';
 import { MCPTestService } from './services/mcp-test-service.js';
+import { createPipelineRoutes } from './routes/pipeline/index.js';
+import { pipelineService } from './services/pipeline-service.js';
 
 // Load environment variables
 dotenv.config();
@@ -166,6 +168,7 @@ app.use('/api/github', createGitHubRoutes(events, settingsService));
 app.use('/api/context', createContextRoutes(settingsService));
 app.use('/api/backlog-plan', createBacklogPlanRoutes(events, settingsService));
 app.use('/api/mcp', createMCPRoutes(mcpTestService));
+app.use('/api/pipeline', createPipelineRoutes(pipelineService));
 
 // Create HTTP server
 const server = createServer(app);
