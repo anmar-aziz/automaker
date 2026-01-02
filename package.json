@@ -2,6 +2,9 @@
   "name": "automaker",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  },
   "workspaces": [
     "apps/*",
     "libs/*"
@@ -42,7 +45,7 @@
     "test:server:coverage": "npm run test:cov --workspace=apps/server",
     "test:packages": "npm run test -w @automaker/types -w @automaker/utils -w @automaker/prompts -w @automaker/platform -w @automaker/model-resolver -w @automaker/dependency-resolver -w @automaker/git-utils --if-present",
     "test:all": "npm run test:packages && npm run test:server",
-    "lint:lockfile": "! grep -q 'git+ssh://' package-lock.json || (echo 'Error: package-lock.json contains git+ssh:// URLs. Run: git config --global url.\"https://github.com/\".insteadOf \"git@github.com:\"' && exit 1)",
+    "lint:lockfile": "node scripts/lint-lockfile.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky && npm run build:packages"
@@ -53,13 +56,13 @@
     ]
   },
   "dependencies": {
-    "cross-spawn": "^7.0.6",
-    "rehype-sanitize": "^6.0.0",
-    "tree-kill": "^1.2.2"
+    "cross-spawn": "7.0.6",
+    "rehype-sanitize": "6.0.0",
+    "tree-kill": "1.2.2"
   },
   "devDependencies": {
-    "husky": "^9.1.7",
-    "lint-staged": "^16.2.7",
-    "prettier": "^3.7.4"
+    "husky": "9.1.7",
+    "lint-staged": "16.2.7",
+    "prettier": "3.7.4"
   }
 }

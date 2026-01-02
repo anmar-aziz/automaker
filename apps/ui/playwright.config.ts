@@ -49,6 +49,8 @@ export default defineConfig({
               // Hide the API key banner to reduce log noise
               AUTOMAKER_HIDE_API_KEY: 'true',
               // No ALLOWED_ROOT_DIRECTORY restriction - allow all paths for testing
+              // Simulate containerized environment to skip sandbox confirmation dialogs
+              IS_CONTAINERIZED: 'true',
             },
           },
           // Frontend Vite dev server

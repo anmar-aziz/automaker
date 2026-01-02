@@ -1,12 +1,13 @@
 /**
  * Health check routes
  *
- * NOTE: Only the basic health check (/) is unauthenticated.
+ * NOTE: Only the basic health check (/) and environment check are unauthenticated.
  * The /detailed endpoint requires authentication.
  */
 
 import { Router } from 'express';
 import { createIndexHandler } from './routes/index.js';
+import { createEnvironmentHandler } from './routes/environment.js';
 
 /**
  * Create unauthenticated health routes (basic check only)
@@ -17,6 +18,10 @@ export function createHealthRoutes(): Router {
 
   // Basic health check - no sensitive info
   router.get('/', createIndexHandler());
+
+  // Environment info including containerization status
+  // This is unauthenticated so the UI can check on startup
+  router.get('/environment', createEnvironmentHandler());
 
   return router;
 }

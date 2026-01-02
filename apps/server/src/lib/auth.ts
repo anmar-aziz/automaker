@@ -10,8 +10,8 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
-import fs from 'fs';
 import path from 'path';
+import * as secureFs from './secure-fs.js';
 
 const DATA_DIR = process.env.DATA_DIR || './data';
 const API_KEY_FILE = path.join(DATA_DIR, '.api-key');
@@ -41,8 +41,8 @@ setInterval(() => {
  */
 function loadSessions(): void {
   try {
-    if (fs.existsSync(SESSIONS_FILE)) {
-      const data = fs.readFileSync(SESSIONS_FILE, 'utf-8');
+    if (secureFs.existsSync(SESSIONS_FILE)) {
+      const data = secureFs.readFileSync(SESSIONS_FILE, 'utf-8') as string;
       const sessions = JSON.parse(data) as Array<
         [string, { createdAt: number; expiresAt: number }]
       >;
@@ -74,9 +74,9 @@ function loadSessions(): void {
  */
 async function saveSessions(): Promise<void> {
   try {
-    await fs.promises.mkdir(path.dirname(SESSIONS_FILE), { recursive: true });
+    await secureFs.mkdir(path.dirname(SESSIONS_FILE), { recursive: true });
     const sessions = Array.from(validSessions.entries());
-    await fs.promises.writeFile(SESSIONS_FILE, JSON.stringify(sessions), {
+    await secureFs.writeFile(SESSIONS_FILE, JSON.stringify(sessions), {
       encoding: 'utf-8',
       mode: 0o600,
     });
@@ -101,8 +101,8 @@ function ensureApiKey(): string {
 
   // Try to read from file
   try {
-    if (fs.existsSync(API_KEY_FILE)) {
-      const key = fs.readFileSync(API_KEY_FILE, 'utf-8').trim();
+    if (secureFs.existsSync(API_KEY_FILE)) {
+      const key = (secureFs.readFileSync(API_KEY_FILE, 'utf-8') as string).trim();
       if (key) {
         console.log('[Auth] Loaded API key from file');
         return key;
@@ -115,8 +115,8 @@ function ensureApiKey(): string {
   // Generate new key
   const newKey = crypto.randomUUID();
   try {
-    fs.mkdirSync(path.dirname(API_KEY_FILE), { recursive: true });
-    fs.writeFileSync(API_KEY_FILE, newKey, { encoding: 'utf-8', mode: 0o600 });
+    secureFs.mkdirSync(path.dirname(API_KEY_FILE), { recursive: true });
+    secureFs.writeFileSync(API_KEY_FILE, newKey, { encoding: 'utf-8', mode: 0o600 });
     console.log('[Auth] Generated new API key');
   } catch (error) {
     console.error('[Auth] Failed to save API key:', error);

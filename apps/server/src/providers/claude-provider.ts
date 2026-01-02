@@ -15,6 +15,32 @@ import type {
   ModelDefinition,
 } from './types.js';
 
+// Explicit allowlist of environment variables to pass to the SDK.
+// Only these vars are passed - nothing else from process.env leaks through.
+const ALLOWED_ENV_VARS = [
+  'ANTHROPIC_API_KEY',
+  'PATH',
+  'HOME',
+  'SHELL',
+  'TERM',
+  'USER',
+  'LANG',
+  'LC_ALL',
+];
+
+/**
+ * Build environment for the SDK with only explicitly allowed variables
+ */
+function buildEnv(): Record<string, string | undefined> {
+  const env: Record<string, string | undefined> = {};
+  for (const key of ALLOWED_ENV_VARS) {
+    if (process.env[key]) {
+      env[key] = process.env[key];
+    }
+  }
+  return env;
+}
+
 export class ClaudeProvider extends BaseProvider {
   getName(): string {
     return 'claude';
@@ -57,6 +83,8 @@ export class ClaudeProvider extends BaseProvider {
       systemPrompt,
       maxTurns,
       cwd,
+      // Pass only explicitly allowed environment variables to SDK
+      env: buildEnv(),
       // Only restrict tools if explicitly set OR (no MCP / unrestricted disabled)
       ...(allowedTools && shouldRestrictTools && { allowedTools }),
       ...(!allowedTools && shouldRestrictTools && { allowedTools: defaultTools }),
