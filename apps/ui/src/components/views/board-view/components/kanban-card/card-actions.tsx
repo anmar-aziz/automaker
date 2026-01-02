@@ -160,6 +160,21 @@ export function CardActions({
                 <RotateCcw className="w-3 h-3 mr-1" />
                 Resume
               </Button>
+            ) : onVerify ? (
+              <Button
+                variant="default"
+                size="sm"
+                className="flex-1 h-7 text-[11px] bg-[var(--status-success)] hover:bg-[var(--status-success)]/90"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onVerify();
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                data-testid={`verify-feature-${feature.id}`}
+              >
+                <CheckCircle2 className="w-3 h-3 mr-1" />
+                Verify
+              </Button>
             ) : null}
             {onViewOutput && !feature.skipTests && (
               <Button
