@@ -56,7 +56,10 @@ import {
   useBoardBackground,
   useBoardPersistence,
   useFollowUpState,
+  useSelectionMode,
 } from './board-view/hooks';
+import { SelectionActionBar } from './board-view/components';
+import { MassEditDialog } from './board-view/dialogs';
 
 // Stable empty array to avoid infinite loop in selector
 const EMPTY_WORKTREES: ReturnType<ReturnType<typeof useAppStore.getState>['getWorktrees']> = [];
@@ -153,6 +156,19 @@ export function BoardView() {
     setFollowUpPreviewMap,
     handleFollowUpDialogChange,
   } = useFollowUpState();
+
+  // Selection mode hook for mass editing
+  const {
+    isSelectionMode,
+    selectedFeatureIds,
+    selectedCount,
+    toggleSelectionMode,
+    toggleFeatureSelection,
+    selectAll,
+    clearSelection,
+    exitSelectionMode,
+  } = useSelectionMode();
+  const [showMassEditDialog, setShowMassEditDialog] = useState(false);
 
   // Search filter for Kanban cards
   const [searchQuery, setSearchQuery] = useState('');
@@ -446,6 +462,72 @@ export function BoardView() {
     },
     currentWorktreeBranch,
   });
+
+  // Handler for bulk updating multiple features
+  const handleBulkUpdate = useCallback(
+    async (updates: Partial<Feature>) => {
+      if (!currentProject || selectedFeatureIds.size === 0) return;
+
+      try {
+        const api = getHttpApiClient();
+        const featureIds = Array.from(selectedFeatureIds);
+        const result = await api.features.bulkUpdate(currentProject.path, featureIds, updates);
+
+        if (result.success) {
+          // Update local state
+          featureIds.forEach((featureId) => {
+            updateFeature(featureId, updates);
+          });
+          toast.success(`Updated ${result.updatedCount} features`);
+          exitSelectionMode();
+        } else {
+          toast.error('Failed to update some features', {
+            description: `${result.failedCount} features failed to update`,
+          });
+        }
+      } catch (error) {
+        logger.error('Bulk update failed:', error);
+        toast.error('Failed to update features');
+      }
+    },
+    [currentProject, selectedFeatureIds, updateFeature, exitSelectionMode]
+  );
+
+  // Get selected features for mass edit dialog
+  const selectedFeatures = useMemo(() => {
+    return hookFeatures.filter((f) => selectedFeatureIds.has(f.id));
+  }, [hookFeatures, selectedFeatureIds]);
+
+  // Get backlog feature IDs in current branch for "Select All"
+  const allSelectableFeatureIds = useMemo(() => {
+    return hookFeatures
+      .filter((f) => {
+        // Only backlog features
+        if (f.status !== 'backlog') return false;
+
+        // Filter by current worktree branch
+        const featureBranch = f.branchName;
+        if (!featureBranch) {
+          // No branch assigned - only selectable on primary worktree
+          return currentWorktreePath === null;
+        }
+        if (currentWorktreeBranch === null) {
+          // Viewing main but branch hasn't been initialized
+          return currentProject?.path
+            ? isPrimaryWorktreeBranch(currentProject.path, featureBranch)
+            : false;
+        }
+        // Match by branch name
+        return featureBranch === currentWorktreeBranch;
+      })
+      .map((f) => f.id);
+  }, [
+    hookFeatures,
+    currentWorktreePath,
+    currentWorktreeBranch,
+    currentProject?.path,
+    isPrimaryWorktreeBranch,
+  ]);
 
   // Handler for addressing PR comments - creates a feature and starts it automatically
   const handleAddressPRComments = useCallback(
@@ -1091,7 +1173,6 @@ export function BoardView() {
             onManualVerify={handleManualVerify}
             onMoveBackToInProgress={handleMoveBackToInProgress}
             onFollowUp={handleOpenFollowUp}
-            onCommit={handleCommitFeature}
             onComplete={handleCompleteFeature}
             onImplement={handleStartImplementation}
             onViewPlan={(feature) => setViewPlanFeature(feature)}
@@ -1102,13 +1183,15 @@ export function BoardView() {
             }}
             featuresWithContext={featuresWithContext}
             runningAutoTasks={runningAutoTasks}
-            shortcuts={shortcuts}
-            onStartNextFeatures={handleStartNextFeatures}
             onArchiveAllVerified={() => setShowArchiveAllVerifiedDialog(true)}
             pipelineConfig={
               currentProject?.path ? pipelineConfigByProject[currentProject.path] || null : null
             }
             onOpenPipelineSettings={() => setShowPipelineSettings(true)}
+            isSelectionMode={isSelectionMode}
+            selectedFeatureIds={selectedFeatureIds}
+            onToggleFeatureSelection={toggleFeatureSelection}
+            onToggleSelectionMode={toggleSelectionMode}
           />
         ) : (
           <GraphView
@@ -1133,6 +1216,27 @@ export function BoardView() {
           />
         )}
       </div>
+
+      {/* Selection Action Bar */}
+      {isSelectionMode && (
+        <SelectionActionBar
+          selectedCount={selectedCount}
+          totalCount={allSelectableFeatureIds.length}
+          onEdit={() => setShowMassEditDialog(true)}
+          onClear={clearSelection}
+          onSelectAll={() => selectAll(allSelectableFeatureIds)}
+        />
+      )}
+
+      {/* Mass Edit Dialog */}
+      <MassEditDialog
+        open={showMassEditDialog}
+        onClose={() => setShowMassEditDialog(false)}
+        selectedFeatures={selectedFeatures}
+        onApply={handleBulkUpdate}
+        showProfilesOnly={showProfilesOnly}
+        aiProfiles={aiProfiles}
+      />
 
       {/* Board Background Modal */}
       <BoardBackgroundModal

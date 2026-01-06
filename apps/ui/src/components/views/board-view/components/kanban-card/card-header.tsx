@@ -29,6 +29,7 @@ interface CardHeaderProps {
   feature: Feature;
   isDraggable: boolean;
   isCurrentAutoTask: boolean;
+  isSelectionMode?: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onViewOutput?: () => void;
@@ -39,6 +40,7 @@ export function CardHeaderSection({
   feature,
   isDraggable,
   isCurrentAutoTask,
+  isSelectionMode = false,
   onEdit,
   onDelete,
   onViewOutput,
@@ -59,7 +61,7 @@ export function CardHeaderSection({
   return (
     <CardHeader className="p-3 pb-2 block">
       {/* Running task header */}
-      {isCurrentAutoTask && (
+      {isCurrentAutoTask && !isSelectionMode && (
         <div className="absolute top-2 right-2 flex items-center gap-1">
           <div className="flex items-center justify-center gap-2 bg-[var(--status-in-progress)]/15 border border-[var(--status-in-progress)]/50 rounded-md px-2 py-0.5">
             <Loader2 className="w-3.5 h-3.5 text-[var(--status-in-progress)] animate-spin" />
@@ -119,7 +121,7 @@ export function CardHeaderSection({
       )}
 
       {/* Backlog header */}
-      {!isCurrentAutoTask && feature.status === 'backlog' && (
+      {!isCurrentAutoTask && !isSelectionMode && feature.status === 'backlog' && (
         <div className="absolute top-2 right-2 flex items-center gap-1">
           <Button
             variant="ghost"
@@ -150,6 +152,7 @@ export function CardHeaderSection({
 
       {/* Waiting approval / Verified header */}
       {!isCurrentAutoTask &&
+        !isSelectionMode &&
         (feature.status === 'waiting_approval' || feature.status === 'verified') && (
           <>
             <div className="absolute top-2 right-2 flex items-center gap-1">
