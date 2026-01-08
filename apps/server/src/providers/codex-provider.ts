@@ -15,6 +15,7 @@ import {
   getDataDirectory,
   getCodexConfigDir,
 } from '@automaker/platform';
+import { checkCodexAuthentication } from '../lib/codex-auth.js';
 import {
   formatHistoryAsText,
   extractTextFromContent,
@@ -963,10 +964,20 @@ export class CodexProvider extends BaseProvider {
   }
 
   async detectInstallation(): Promise<InstallationStatus> {
+    console.log('[CodexProvider.detectInstallation] Starting...');
+
     const cliPath = await findCodexCliPath();
     const hasApiKey = !!process.env[OPENAI_API_KEY_ENV];
     const authIndicators = await getCodexAuthIndicators();
     const installed = !!cliPath;
+
+    console.log('[CodexProvider.detectInstallation] cliPath:', cliPath);
+    console.log('[CodexProvider.detectInstallation] hasApiKey:', hasApiKey);
+    console.log(
+      '[CodexProvider.detectInstallation] authIndicators:',
+      JSON.stringify(authIndicators)
+    );
+    console.log('[CodexProvider.detectInstallation] installed:', installed);
 
     let version = '';
     if (installed) {
@@ -977,19 +988,29 @@ export class CodexProvider extends BaseProvider {
           cwd: process.cwd(),
         });
         version = result.stdout.trim();
-      } catch {
+        console.log('[CodexProvider.detectInstallation] version:', version);
+      } catch (error) {
+        console.log('[CodexProvider.detectInstallation] Error getting version:', error);
         version = '';
       }
     }
 
-    return {
+    // Determine auth status - always verify with CLI, never assume authenticated
+    console.log('[CodexProvider.detectInstallation] Calling checkCodexAuthentication...');
+    const authCheck = await checkCodexAuthentication(cliPath);
+    console.log('[CodexProvider.detectInstallation] authCheck result:', JSON.stringify(authCheck));
+    const authenticated = authCheck.authenticated;
+
+    const result = {
       installed,
       path: cliPath || undefined,
       version: version || undefined,
-      method: 'cli',
+      method: 'cli' as const, // Installation method
       hasApiKey,
-      authenticated: authIndicators.hasOAuthToken || authIndicators.hasApiKey || hasApiKey,
+      authenticated,
     };
+    console.log('[CodexProvider.detectInstallation] Final result:', JSON.stringify(result));
+    return result;
   }
 
   getAvailableModels(): ModelDefinition[] {
@@ -1001,92 +1022,66 @@ export class CodexProvider extends BaseProvider {
    * Check authentication status for Codex CLI
    */
   async checkAuth(): Promise<CodexAuthStatus> {
+    console.log('[CodexProvider.checkAuth] Starting auth check...');
+
     const cliPath = await findCodexCliPath();
     const hasApiKey = !!process.env[OPENAI_API_KEY_ENV];
     const authIndicators = await getCodexAuthIndicators();
 
+    console.log('[CodexProvider.checkAuth] cliPath:', cliPath);
+    console.log('[CodexProvider.checkAuth] hasApiKey:', hasApiKey);
+    console.log('[CodexProvider.checkAuth] authIndicators:', JSON.stringify(authIndicators));
+
     // Check for API key in environment
     if (hasApiKey) {
+      console.log('[CodexProvider.checkAuth] Has API key, returning authenticated');
       return { authenticated: true, method: 'api_key' };
     }
 
     // Check for OAuth/token from Codex CLI
     if (authIndicators.hasOAuthToken || authIndicators.hasApiKey) {
+      console.log(
+        '[CodexProvider.checkAuth] Has OAuth token or API key in auth file, returning authenticated'
+      );
       return { authenticated: true, method: 'oauth' };
     }
 
-    // CLI is installed but not authenticated
+    // CLI is installed but not authenticated via indicators - try CLI command
+    console.log('[CodexProvider.checkAuth] No indicators found, trying CLI command...');
     if (cliPath) {
       try {
+        // Try 'codex login status' first (same as checkCodexAuthentication)
+        console.log('[CodexProvider.checkAuth] Running: ' + cliPath + ' login status');
         const result = await spawnProcess({
           command: cliPath || CODEX_COMMAND,
-          args: ['auth', 'status', '--json'],
+          args: ['login', 'status'],
           cwd: process.cwd(),
+          env: {
+            ...process.env,
+            TERM: 'dumb',
+          },
         });
-        // If auth command succeeds, we're authenticated
-        if (result.exitCode === 0) {
+        console.log('[CodexProvider.checkAuth] login status result:');
+        console.log('[CodexProvider.checkAuth]   exitCode:', result.exitCode);
+        console.log('[CodexProvider.checkAuth]   stdout:', JSON.stringify(result.stdout));
+        console.log('[CodexProvider.checkAuth]   stderr:', JSON.stringify(result.stderr));
+
+        // Check both stdout and stderr - Codex CLI outputs to stderr
+        const combinedOutput = (result.stdout + result.stderr).toLowerCase();
+        const isLoggedIn = combinedOutput.includes('logged in');
+        console.log('[CodexProvider.checkAuth] isLoggedIn:', isLoggedIn);
+
+        if (result.exitCode === 0 && isLoggedIn) {
+          console.log('[CodexProvider.checkAuth] CLI says logged in, returning authenticated');
           return { authenticated: true, method: 'oauth' };
         }
-      } catch {
-        // Auth command failed, not authenticated
+      } catch (error) {
+        console.log('[CodexProvider.checkAuth] Error running login status:', error);
       }
     }
 
+    console.log('[CodexProvider.checkAuth] Not authenticated');
     return { authenticated: false, method: 'none' };
-  }
-
-  /**
-   * Deduplicate text blocks in Codex assistant messages
-   *
-   * Codex can send:
-   * 1. Duplicate consecutive text blocks (same text twice in a row)
-   * 2. A final accumulated block containing ALL previous text
-   *
-   * This method filters out these duplicates to prevent UI stuttering.
-   */
-  private deduplicateTextBlocks(
-    content: Array<{ type: string; text?: string }>,
-    lastTextBlock: string,
-    accumulatedText: string
-  ): { content: Array<{ type: string; text?: string }>; lastBlock: string; accumulated: string } {
-    const filtered: Array<{ type: string; text?: string }> = [];
-    let newLastBlock = lastTextBlock;
-    let newAccumulated = accumulatedText;
-
-    for (const block of content) {
-      if (block.type !== 'text' || !block.text) {
-        filtered.push(block);
-        continue;
-      }
-
-      const text = block.text;
-
-      // Skip empty text
-      if (!text.trim()) continue;
-
-      // Skip duplicate consecutive text blocks
-      if (text === newLastBlock) {
-        continue;
-      }
-
-      // Skip final accumulated text block
-      // Codex sends one large block containing ALL previous text at the end
-      if (newAccumulated.length > 100 && text.length > newAccumulated.length * 0.8) {
-        const normalizedAccum = newAccumulated.replace(/\s+/g, ' ').trim();
-        const normalizedNew = text.replace(/\s+/g, ' ').trim();
-        if (normalizedNew.includes(normalizedAccum.slice(0, 100))) {
-          // This is the final accumulated block, skip it
-          continue;
-        }
-      }
-
-      // This is a valid new text block
-      newLastBlock = text;
-      newAccumulated += text;
-      filtered.push(block);
-    }
-
-    return { content: filtered, lastBlock: newLastBlock, accumulated: newAccumulated };
   }
 
   /**

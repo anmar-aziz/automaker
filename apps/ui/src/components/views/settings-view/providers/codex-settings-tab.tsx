@@ -54,7 +54,7 @@ export function CodexSettingsTab() {
         }
       : null);
 
-  // Load Codex CLI status on mount
+  // Load Codex CLI status and auth status on mount
   useEffect(() => {
     const checkCodexStatus = async () => {
       const api = getElectronAPI();
@@ -158,11 +158,13 @@ export function CodexSettingsTab() {
   );
 
   const showUsageTracking = codexAuthStatus?.authenticated ?? false;
+  const authStatusToDisplay = codexAuthStatus;
 
   return (
     <div className="space-y-6">
       <CodexCliStatus
         status={codexCliStatus}
+        authStatus={authStatusToDisplay}
         isChecking={isCheckingCodexCli}
         onRefresh={handleRefreshCodexCli}
       />

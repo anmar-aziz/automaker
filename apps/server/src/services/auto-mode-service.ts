@@ -47,7 +47,6 @@ import type { SettingsService } from './settings-service.js';
 import { pipelineService, PipelineService } from './pipeline-service.js';
 import {
   getAutoLoadClaudeMdSetting,
-  getEnableSandboxModeSetting,
   filterClaudeMdFromContext,
   getMCPServersFromSettings,
   getPromptCustomization,
@@ -1314,7 +1313,6 @@ Format your response as a structured markdown document.`;
         allowedTools: sdkOptions.allowedTools as string[],
         abortController,
         settingSources: sdkOptions.settingSources,
-        sandbox: sdkOptions.sandbox, // Pass sandbox configuration
         thinkingLevel: analysisThinkingLevel, // Pass thinking level
       };
 
@@ -1784,9 +1782,13 @@ Format your response as a structured markdown document.`;
       // Apply dependency-aware ordering
       const { orderedFeatures } = resolveDependencies(pendingFeatures);
 
+      // Get skipVerificationInAutoMode setting
+      const settings = await this.settingsService?.getGlobalSettings();
+      const skipVerification = settings?.skipVerificationInAutoMode ?? false;
+
       // Filter to only features with satisfied dependencies
       const readyFeatures = orderedFeatures.filter((feature: Feature) =>
-        areDependenciesSatisfied(feature, allFeatures)
+        areDependenciesSatisfied(feature, allFeatures, { skipVerification })
       );
 
       return readyFeatures;
@@ -2074,9 +2076,6 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
         ? options.autoLoadClaudeMd
         : await getAutoLoadClaudeMdSetting(finalProjectPath, this.settingsService, '[AutoMode]');
 
-    // Load enableSandboxMode setting (global setting only)
-    const enableSandboxMode = await getEnableSandboxModeSetting(this.settingsService, '[AutoMode]');
-
     // Load MCP servers from settings (global setting only)
     const mcpServers = await getMCPServersFromSettings(this.settingsService, '[AutoMode]');
 
@@ -2088,7 +2087,6 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
       model: model,
       abortController,
       autoLoadClaudeMd,
-      enableSandboxMode,
       mcpServers: Object.keys(mcpServers).length > 0 ? mcpServers : undefined,
       thinkingLevel: options?.thinkingLevel,
     });
@@ -2131,7 +2129,6 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
       abortController,
       systemPrompt: sdkOptions.systemPrompt,
       settingSources: sdkOptions.settingSources,
-      sandbox: sdkOptions.sandbox, // Pass sandbox configuration
       mcpServers: Object.keys(mcpServers).length > 0 ? mcpServers : undefined, // Pass MCP servers configuration
       thinkingLevel: options?.thinkingLevel, // Pass thinking level for extended thinking
     };
@@ -2214,9 +2211,23 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
       }, WRITE_DEBOUNCE_MS);
     };
 
+    // Heartbeat logging so "silent" model calls are visible.
+    // Some runs can take a while before the first streamed message arrives.
+    const streamStartTime = Date.now();
+    let receivedAnyStreamMessage = false;
+    const STREAM_HEARTBEAT_MS = 15_000;
+    const streamHeartbeat = setInterval(() => {
+      if (receivedAnyStreamMessage) return;
+      const elapsedSeconds = Math.round((Date.now() - streamStartTime) / 1000);
+      logger.info(
+        `Waiting for first model response for feature ${featureId} (${elapsedSeconds}s elapsed)...`
+      );
+    }, STREAM_HEARTBEAT_MS);
+
     // Wrap stream processing in try/finally to ensure timeout cleanup on any error/abort
     try {
       streamLoop: for await (const msg of stream) {
+        receivedAnyStreamMessage = true;
         // Log raw stream event for debugging
         appendRawEvent(msg);
 
@@ -2733,6 +2744,7 @@ Implement all the changes described in the plan above.`;
         }
       }
     } finally {
+      clearInterval(streamHeartbeat);
       // ALWAYS clear pending timeouts to prevent memory leaks
       // This runs on success, error, or abort
       if (writeTimeout) {

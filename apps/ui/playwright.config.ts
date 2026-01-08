@@ -53,7 +53,9 @@ export default defineConfig({
                       process.env.AUTOMAKER_API_KEY || 'test-api-key-for-e2e-tests',
                     // Hide the API key banner to reduce log noise
                     AUTOMAKER_HIDE_API_KEY: 'true',
-                    // No ALLOWED_ROOT_DIRECTORY restriction - allow all paths for testing
+                    // Explicitly unset ALLOWED_ROOT_DIRECTORY to allow all paths for testing
+                    // (prevents inheriting /projects from Docker or other environments)
+                    ALLOWED_ROOT_DIRECTORY: '',
                     // Simulate containerized environment to skip sandbox confirmation dialogs
                     IS_CONTAINERIZED: 'true',
                   },

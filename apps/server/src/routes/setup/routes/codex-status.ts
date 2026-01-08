@@ -19,6 +19,12 @@ export function createCodexStatusHandler() {
       const provider = new CodexProvider();
       const status = await provider.detectInstallation();
 
+      // Derive auth method from authenticated status and API key presence
+      let authMethod = 'none';
+      if (status.authenticated) {
+        authMethod = status.hasApiKey ? 'api_key_env' : 'cli_authenticated';
+      }
+
       res.json({
         success: true,
         installed: status.installed,
@@ -26,7 +32,7 @@ export function createCodexStatusHandler() {
         path: status.path || null,
         auth: {
           authenticated: status.authenticated || false,
-          method: status.method || 'cli',
+          method: authMethod,
           hasApiKey: status.hasApiKey || false,
         },
         installCommand,

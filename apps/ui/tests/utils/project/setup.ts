@@ -81,6 +81,31 @@ export async function setupWelcomeView(
       if (opts?.workspaceDir) {
         localStorage.setItem('automaker:lastProjectDir', opts.workspaceDir);
       }
+
+      // Disable splash screen in tests
+      sessionStorage.setItem('automaker-splash-shown', 'true');
+
+      // Set up a mechanism to keep currentProject null even after settings hydration
+      // Settings API might restore a project, so we override it after hydration
+      // Use a flag to indicate we want welcome view
+      sessionStorage.setItem('automaker-test-welcome-view', 'true');
+
+      // Override currentProject after a short delay to ensure it happens after settings hydration
+      setTimeout(() => {
+        const storage = localStorage.getItem('automaker-storage');
+        if (storage) {
+          try {
+            const state = JSON.parse(storage);
+            if (state.state && sessionStorage.getItem('automaker-test-welcome-view') === 'true') {
+              state.state.currentProject = null;
+              state.state.currentView = 'welcome';
+              localStorage.setItem('automaker-storage', JSON.stringify(state));
+            }
+          } catch {
+            // Ignore parse errors
+          }
+        }
+      }, 2000); // Wait 2 seconds for settings hydration to complete
     },
     { opts: options, versions: STORE_VERSIONS }
   );
@@ -156,6 +181,9 @@ export async function setupRealProject(
         version: versions.SETUP_STORE,
       };
       localStorage.setItem('automaker-setup', JSON.stringify(setupState));
+
+      // Disable splash screen in tests
+      sessionStorage.setItem('automaker-splash-shown', 'true');
     },
     { path: projectPath, name: projectName, opts: options, versions: STORE_VERSIONS }
   );
@@ -189,6 +217,9 @@ export async function setupMockProject(page: Page): Promise<void> {
     };
 
     localStorage.setItem('automaker-storage', JSON.stringify(mockState));
+
+    // Disable splash screen in tests
+    sessionStorage.setItem('automaker-splash-shown', 'true');
   });
 }
 
@@ -260,6 +291,9 @@ export async function setupMockProjectAtConcurrencyLimit(
       };
 
       localStorage.setItem('automaker-storage', JSON.stringify(mockState));
+
+      // Disable splash screen in tests
+      sessionStorage.setItem('automaker-splash-shown', 'true');
     },
     { maxConcurrency, runningTasks }
   );
@@ -315,6 +349,9 @@ export async function setupMockProjectWithFeatures(
     // Also store features in a global variable that the mock electron API can use
     // This is needed because the board-view loads features from the file system
     (window as any).__mockFeatures = mockFeatures;
+
+    // Disable splash screen in tests
+    sessionStorage.setItem('automaker-splash-shown', 'true');
   }, options);
 }
 
@@ -351,6 +388,9 @@ export async function setupMockProjectWithContextFile(
       };
 
       localStorage.setItem('automaker-storage', JSON.stringify(mockState));
+
+      // Disable splash screen in tests
+      sessionStorage.setItem('automaker-splash-shown', 'true');
 
       // Set up mock file system with a context file for the feature
       // This will be used by the mock electron API
@@ -470,6 +510,9 @@ export async function setupEmptyLocalStorage(page: Page): Promise<void> {
       version: 2, // Must match app-store.ts persist version
     };
     localStorage.setItem('automaker-storage', JSON.stringify(mockState));
+
+    // Disable splash screen in tests
+    sessionStorage.setItem('automaker-splash-shown', 'true');
   });
 }
 
@@ -509,6 +552,9 @@ export async function setupMockProjectsWithoutCurrent(page: Page): Promise<void>
     };
 
     localStorage.setItem('automaker-storage', JSON.stringify(mockState));
+
+    // Disable splash screen in tests
+    sessionStorage.setItem('automaker-splash-shown', 'true');
   });
 }
 
@@ -560,6 +606,9 @@ export async function setupMockProjectWithSkipTestsFeatures(
     };
 
     localStorage.setItem('automaker-storage', JSON.stringify(mockState));
+
+    // Disable splash screen in tests
+    sessionStorage.setItem('automaker-splash-shown', 'true');
   }, options);
 }
 
@@ -632,6 +681,9 @@ export async function setupMockProjectWithAgentOutput(
       };
 
       localStorage.setItem('automaker-storage', JSON.stringify(mockState));
+
+      // Disable splash screen in tests
+      sessionStorage.setItem('automaker-splash-shown', 'true');
 
       // Set up mock file system with output content for the feature
       // Now uses features/{id}/agent-output.md path
@@ -749,6 +801,9 @@ export async function setupFirstRun(page: Page): Promise<void> {
     };
 
     localStorage.setItem('automaker-storage', JSON.stringify(appState));
+
+    // Disable splash screen in tests
+    sessionStorage.setItem('automaker-splash-shown', 'true');
   });
 }
 
@@ -769,6 +824,9 @@ export async function setupComplete(page: Page): Promise<void> {
     };
 
     localStorage.setItem('automaker-setup', JSON.stringify(setupState));
+
+    // Disable splash screen in tests
+    sessionStorage.setItem('automaker-splash-shown', 'true');
   }, STORE_VERSIONS);
 }
 
@@ -792,6 +850,7 @@ export async function setupMockProjectWithProfiles(
     };
 
     // Default built-in profiles (same as DEFAULT_AI_PROFILES from app-store.ts)
+    // Include all 4 default profiles to match the actual store initialization
     const builtInProfiles = [
       {
         id: 'profile-heavy-task',
@@ -823,6 +882,15 @@ export async function setupMockProjectWithProfiles(
         provider: 'claude' as const,
         isBuiltIn: true,
         icon: 'Zap',
+      },
+      {
+        id: 'profile-cursor-refactoring',
+        name: 'Cursor Refactoring',
+        description: 'Cursor Composer 1 for refactoring tasks.',
+        provider: 'cursor' as const,
+        cursorModel: 'composer-1' as const,
+        isBuiltIn: true,
+        icon: 'Sparkles',
       },
     ];
 
@@ -880,5 +948,8 @@ export async function setupMockProjectWithProfiles(
       version: 0, // setup-store.ts doesn't specify a version, so zustand defaults to 0
     };
     localStorage.setItem('automaker-setup', JSON.stringify(setupState));
+
+    // Disable splash screen in tests
+    sessionStorage.setItem('automaker-splash-shown', 'true');
   }, options);
 }

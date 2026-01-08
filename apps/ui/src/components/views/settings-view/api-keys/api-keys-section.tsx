@@ -1,7 +1,7 @@
 import { useAppStore } from '@/store/app-store';
 import { useSetupStore } from '@/store/setup-store';
 import { Button } from '@/components/ui/button';
-import { Key, CheckCircle2, Settings, Trash2, Loader2 } from 'lucide-react';
+import { Key, CheckCircle2, Trash2, Loader2 } from 'lucide-react';
 import { ApiKeyField } from './api-key-field';
 import { buildProviderConfigs } from '@/config/api-providers';
 import { SecurityNotice } from './security-notice';
@@ -10,20 +10,13 @@ import { cn } from '@/lib/utils';
 import { useState, useCallback } from 'react';
 import { getElectronAPI } from '@/lib/electron';
 import { toast } from 'sonner';
-import { useNavigate } from '@tanstack/react-router';
 
 export function ApiKeysSection() {
   const { apiKeys, setApiKeys } = useAppStore();
-  const {
-    claudeAuthStatus,
-    setClaudeAuthStatus,
-    codexAuthStatus,
-    setCodexAuthStatus,
-    setSetupComplete,
-  } = useSetupStore();
+  const { claudeAuthStatus, setClaudeAuthStatus, codexAuthStatus, setCodexAuthStatus } =
+    useSetupStore();
   const [isDeletingAnthropicKey, setIsDeletingAnthropicKey] = useState(false);
   const [isDeletingOpenaiKey, setIsDeletingOpenaiKey] = useState(false);
-  const navigate = useNavigate();
 
   const { providerConfigParams, handleSave, saved } = useApiKeyManagement();
 
@@ -86,12 +79,6 @@ export function ApiKeysSection() {
     }
   }, [apiKeys, setApiKeys, setCodexAuthStatus]);
 
-  // Open setup wizard
-  const openSetupWizard = useCallback(() => {
-    setSetupComplete(false);
-    navigate({ to: '/setup' });
-  }, [setSetupComplete, navigate]);
-
   return (
     <div
       className={cn(
@@ -144,16 +131,6 @@ export function ApiKeysSection() {
             ) : (
               'Save API Keys'
             )}
-          </Button>
-
-          <Button
-            onClick={openSetupWizard}
-            variant="outline"
-            className="h-10 border-border"
-            data-testid="run-setup-wizard"
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Run Setup Wizard
           </Button>
 
           {apiKeys.anthropic && (

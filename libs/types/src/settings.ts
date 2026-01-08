@@ -409,6 +409,18 @@ export interface GlobalSettings {
   /** Version number for schema migration */
   version: number;
 
+  // Migration Tracking
+  /** Whether localStorage settings have been migrated to API storage (prevents re-migration) */
+  localStorageMigrated?: boolean;
+
+  // Onboarding / Setup Wizard
+  /** Whether the initial setup wizard has been completed */
+  setupComplete: boolean;
+  /** Whether this is the first run experience (used by UI onboarding) */
+  isFirstRun: boolean;
+  /** Whether Claude setup was skipped during onboarding */
+  skipClaudeSetup: boolean;
+
   // Theme Configuration
   /** Currently selected theme */
   theme: ThemeMode;
@@ -428,6 +440,8 @@ export interface GlobalSettings {
   defaultSkipTests: boolean;
   /** Default: enable dependency blocking */
   enableDependencyBlocking: boolean;
+  /** Skip verification requirement in auto-mode (treat 'completed' same as 'verified') */
+  skipVerificationInAutoMode: boolean;
   /** Default: use git worktrees for feature branches */
   useWorktrees: boolean;
   /** Default: only show AI profiles (hide other settings) */
@@ -472,6 +486,8 @@ export interface GlobalSettings {
   projects: ProjectRef[];
   /** Projects in trash/recycle bin */
   trashedProjects: TrashedProjectRef[];
+  /** ID of the currently open project (null if none) */
+  currentProjectId: string | null;
   /** History of recently opened project IDs */
   projectHistory: string[];
   /** Current position in project history for navigation */
@@ -496,9 +512,7 @@ export interface GlobalSettings {
   // Claude Agent SDK Settings
   /** Auto-load CLAUDE.md files using SDK's settingSources option */
   autoLoadClaudeMd?: boolean;
-  /** Enable sandbox mode for bash commands (default: false, enable for additional security) */
-  enableSandboxMode?: boolean;
-  /** Skip showing the sandbox risk warning dialog */
+  /** Skip the sandbox environment warning dialog on startup */
   skipSandboxWarning?: boolean;
 
   // Codex CLI Settings
@@ -648,7 +662,7 @@ export const DEFAULT_PHASE_MODELS: PhaseModelConfig = {
 };
 
 /** Current version of the global settings schema */
-export const SETTINGS_VERSION = 3;
+export const SETTINGS_VERSION = 4;
 /** Current version of the credentials schema */
 export const CREDENTIALS_VERSION = 1;
 /** Current version of the project settings schema */
@@ -681,6 +695,9 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
 /** Default global settings used when no settings file exists */
 export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   version: SETTINGS_VERSION,
+  setupComplete: false,
+  isFirstRun: true,
+  skipClaudeSetup: false,
   theme: 'dark',
   sidebarOpen: true,
   chatHistoryOpen: false,
@@ -688,6 +705,7 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   maxConcurrency: 3,
   defaultSkipTests: true,
   enableDependencyBlocking: true,
+  skipVerificationInAutoMode: false,
   useWorktrees: false,
   showProfilesOnly: false,
   defaultPlanningMode: 'skip',
@@ -703,6 +721,7 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   aiProfiles: [],
   projects: [],
   trashedProjects: [],
+  currentProjectId: null,
   projectHistory: [],
   projectHistoryIndex: -1,
   lastProjectDir: undefined,
@@ -710,7 +729,6 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   worktreePanelCollapsed: false,
   lastSelectedSessionByProject: {},
   autoLoadClaudeMd: false,
-  enableSandboxMode: false,
   skipSandboxWarning: false,
   codexAutoLoadAgents: DEFAULT_CODEX_AUTO_LOAD_AGENTS,
   codexSandboxMode: DEFAULT_CODEX_SANDBOX_MODE,

@@ -1,7 +1,7 @@
 import { Page } from '@playwright/test';
 import { clickElement } from '../core/interactions';
 import { handleLoginScreenIfPresent } from '../core/interactions';
-import { waitForElement } from '../core/waiting';
+import { waitForElement, waitForSplashScreenToDisappear } from '../core/waiting';
 import { authenticateForTests } from '../api/client';
 
 /**
@@ -15,6 +15,9 @@ export async function navigateToBoard(page: Page): Promise<void> {
   // Navigate directly to /board route
   await page.goto('/board');
   await page.waitForLoadState('load');
+
+  // Wait for splash screen to disappear (safety net)
+  await waitForSplashScreenToDisappear(page, 3000);
 
   // Handle login redirect if needed
   await handleLoginScreenIfPresent(page);
@@ -34,6 +37,9 @@ export async function navigateToContext(page: Page): Promise<void> {
   // Navigate directly to /context route
   await page.goto('/context');
   await page.waitForLoadState('load');
+
+  // Wait for splash screen to disappear (safety net)
+  await waitForSplashScreenToDisappear(page, 3000);
 
   // Handle login redirect if needed
   await handleLoginScreenIfPresent(page);
@@ -66,6 +72,9 @@ export async function navigateToSpec(page: Page): Promise<void> {
   // Navigate directly to /spec route
   await page.goto('/spec');
   await page.waitForLoadState('load');
+
+  // Wait for splash screen to disappear (safety net)
+  await waitForSplashScreenToDisappear(page, 3000);
 
   // Wait for loading state to complete first (if present)
   const loadingElement = page.locator('[data-testid="spec-view-loading"]');
@@ -100,6 +109,9 @@ export async function navigateToAgent(page: Page): Promise<void> {
   await page.goto('/agent');
   await page.waitForLoadState('load');
 
+  // Wait for splash screen to disappear (safety net)
+  await waitForSplashScreenToDisappear(page, 3000);
+
   // Handle login redirect if needed
   await handleLoginScreenIfPresent(page);
 
@@ -118,6 +130,9 @@ export async function navigateToSettings(page: Page): Promise<void> {
   // Navigate directly to /settings route
   await page.goto('/settings');
   await page.waitForLoadState('load');
+
+  // Wait for splash screen to disappear (safety net)
+  await waitForSplashScreenToDisappear(page, 3000);
 
   // Wait for the settings view to be visible
   await waitForElement(page, 'settings-view', { timeout: 10000 });
@@ -145,6 +160,9 @@ export async function navigateToWelcome(page: Page): Promise<void> {
 
   await page.goto('/');
   await page.waitForLoadState('load');
+
+  // Wait for splash screen to disappear (safety net)
+  await waitForSplashScreenToDisappear(page, 3000);
 
   // Handle login redirect if needed
   await handleLoginScreenIfPresent(page);

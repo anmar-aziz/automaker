@@ -30,7 +30,13 @@ export type {
 export * from './codex-models.js';
 
 // Feature types
-export type { Feature, FeatureImagePath, FeatureTextFilePath, FeatureStatus } from './feature.js';
+export type {
+  Feature,
+  FeatureImagePath,
+  FeatureTextFilePath,
+  FeatureStatus,
+  DescriptionHistoryEntry,
+} from './feature.js';
 
 // Session types
 export type {

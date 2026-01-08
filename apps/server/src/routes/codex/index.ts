@@ -13,7 +13,10 @@ export function createCodexRoutes(service: CodexUsageService): Router {
       // Check if Codex CLI is available first
       const isAvailable = await service.isAvailable();
       if (!isAvailable) {
-        res.status(503).json({
+        // IMPORTANT: This endpoint is behind Automaker session auth already.
+        // Use a 200 + error payload for Codex CLI issues so the UI doesn't
+        // interpret it as an invalid Automaker session (401/403 triggers logout).
+        res.status(200).json({
           error: 'Codex CLI not found',
           message: "Please install Codex CLI and run 'codex login' to authenticate",
         });
@@ -26,18 +29,19 @@ export function createCodexRoutes(service: CodexUsageService): Router {
       const message = error instanceof Error ? error.message : 'Unknown error';
 
       if (message.includes('not authenticated') || message.includes('login')) {
-        res.status(401).json({
+        // Do NOT use 401/403 here: that status code is reserved for Automaker session auth.
+        res.status(200).json({
           error: 'Authentication required',
           message: "Please run 'codex login' to authenticate",
         });
       } else if (message.includes('not available') || message.includes('does not provide')) {
         // This is the expected case - Codex doesn't provide usage stats
-        res.status(503).json({
+        res.status(200).json({
           error: 'Usage statistics not available',
           message: message,
         });
       } else if (message.includes('timed out')) {
-        res.status(504).json({
+        res.status(200).json({
           error: 'Command timed out',
           message: 'The Codex CLI took too long to respond',
         });

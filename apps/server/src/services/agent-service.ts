@@ -22,7 +22,6 @@ import { PathNotAllowedError } from '@automaker/platform';
 import type { SettingsService } from './settings-service.js';
 import {
   getAutoLoadClaudeMdSetting,
-  getEnableSandboxModeSetting,
   filterClaudeMdFromContext,
   getMCPServersFromSettings,
   getPromptCustomization,
@@ -246,12 +245,6 @@ export class AgentService {
         '[AgentService]'
       );
 
-      // Load enableSandboxMode setting (global setting only)
-      const enableSandboxMode = await getEnableSandboxModeSetting(
-        this.settingsService,
-        '[AgentService]'
-      );
-
       // Load MCP servers from settings (global setting only)
       const mcpServers = await getMCPServersFromSettings(this.settingsService, '[AgentService]');
 
@@ -281,7 +274,6 @@ export class AgentService {
         systemPrompt: combinedSystemPrompt,
         abortController: session.abortController!,
         autoLoadClaudeMd,
-        enableSandboxMode,
         thinkingLevel: effectiveThinkingLevel, // Pass thinking level for Claude models
         mcpServers: Object.keys(mcpServers).length > 0 ? mcpServers : undefined,
       });
@@ -305,7 +297,6 @@ export class AgentService {
         abortController: session.abortController!,
         conversationHistory: conversationHistory.length > 0 ? conversationHistory : undefined,
         settingSources: sdkOptions.settingSources,
-        sandbox: sdkOptions.sandbox, // Pass sandbox configuration
         sdkSessionId: session.sdkSessionId, // Pass SDK session ID for resuming
         mcpServers: Object.keys(mcpServers).length > 0 ? mcpServers : undefined, // Pass MCP servers configuration
       };

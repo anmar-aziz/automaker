@@ -1,5 +1,6 @@
-import { spawn } from 'child_process';
 import * as os from 'os';
+import { findCodexCliPath } from '@automaker/platform';
+import { checkCodexAuthentication } from '../lib/codex-auth.js';
 
 export interface CodexRateLimitWindow {
   limit: number;
@@ -40,21 +41,16 @@ export interface CodexUsageData {
 export class CodexUsageService {
   private codexBinary = 'codex';
   private isWindows = os.platform() === 'win32';
+  private cachedCliPath: string | null = null;
 
   /**
    * Check if Codex CLI is available on the system
    */
   async isAvailable(): Promise<boolean> {
-    return new Promise((resolve) => {
-      const checkCmd = this.isWindows ? 'where' : 'which';
-      const proc = spawn(checkCmd, [this.codexBinary]);
-      proc.on('close', (code) => {
-        resolve(code === 0);
-      });
-      proc.on('error', () => {
-        resolve(false);
-      });
-    });
+    // Prefer our platform-aware resolver over `which/where` because the server
+    // process PATH may not include npm global bins (nvm/fnm/volta/pnpm).
+    this.cachedCliPath = await findCodexCliPath();
+    return Boolean(this.cachedCliPath);
   }
 
   /**
@@ -84,29 +80,9 @@ export class CodexUsageService {
    * Check if Codex is authenticated
    */
   private async checkAuthentication(): Promise<boolean> {
-    return new Promise((resolve) => {
-      const proc = spawn(this.codexBinary, ['login', 'status'], {
-        env: {
-          ...process.env,
-          TERM: 'dumb', // Avoid interactive output
-        },
-      });
-
-      let output = '';
-
-      proc.stdout.on('data', (data) => {
-        output += data.toString();
-      });
-
-      proc.on('close', (code) => {
-        // Check if output indicates logged in
-        const isLoggedIn = output.toLowerCase().includes('logged in');
-        resolve(code === 0 && isLoggedIn);
-      });
-
-      proc.on('error', () => {
-        resolve(false);
-      });
-    });
+    // Use the cached CLI path if available, otherwise fall back to finding it
+    const cliPath = this.cachedCliPath || (await findCodexCliPath());
+    const authCheck = await checkCodexAuthentication(cliPath);
+    return authCheck.authenticated;
   }
 }

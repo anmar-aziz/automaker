@@ -1,13 +1,15 @@
+import { useState } from 'react';
 import { HotkeyButton } from '@/components/ui/hotkey-button';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Plus, Bot, Wand2 } from 'lucide-react';
+import { Plus, Bot, Wand2, Settings2 } from 'lucide-react';
 import { KeyboardShortcut } from '@/hooks/use-keyboard-shortcuts';
 import { UsagePopover } from '@/components/usage-popover';
 import { useAppStore } from '@/store/app-store';
 import { useSetupStore } from '@/store/setup-store';
+import { AutoModeSettingsDialog } from './dialogs/auto-mode-settings-dialog';
 
 interface BoardHeaderProps {
   projectName: string;
@@ -38,8 +40,11 @@ export function BoardHeader({
   addFeatureShortcut,
   isMounted,
 }: BoardHeaderProps) {
+  const [showAutoModeSettings, setShowAutoModeSettings] = useState(false);
   const apiKeys = useAppStore((state) => state.apiKeys);
   const claudeAuthStatus = useSetupStore((state) => state.claudeAuthStatus);
+  const skipVerificationInAutoMode = useAppStore((state) => state.skipVerificationInAutoMode);
+  const setSkipVerificationInAutoMode = useAppStore((state) => state.setSkipVerificationInAutoMode);
   const codexAuthStatus = useSetupStore((state) => state.codexAuthStatus);
 
   // Claude usage tracking visibility logic
@@ -101,8 +106,24 @@ export function BoardHeader({
               onCheckedChange={onAutoModeToggle}
               data-testid="auto-mode-toggle"
             />
+            <button
+              onClick={() => setShowAutoModeSettings(true)}
+              className="p-1 rounded hover:bg-accent/50 transition-colors"
+              title="Auto Mode Settings"
+              data-testid="auto-mode-settings-button"
+            >
+              <Settings2 className="w-4 h-4 text-muted-foreground" />
+            </button>
           </div>
         )}
+
+        {/* Auto Mode Settings Dialog */}
+        <AutoModeSettingsDialog
+          open={showAutoModeSettings}
+          onOpenChange={setShowAutoModeSettings}
+          skipVerificationInAutoMode={skipVerificationInAutoMode}
+          onSkipVerificationChange={setSkipVerificationInAutoMode}
+        />
 
         <Button
           size="sm"
