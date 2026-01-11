@@ -18,10 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, ChevronUp, ChevronDown, Upload, Pencil, X, FileText } from 'lucide-react';
+import { Plus, Trash2, ChevronUp, ChevronDown, Upload, Pencil, X } from 'lucide-react';
 import { toast } from 'sonner';
 import type { PipelineConfig, PipelineStep } from '@automaker/types';
 import { cn } from '@/lib/utils';
+import { STEP_TEMPLATES } from './pipeline-step-templates';
 
 // Color options for pipeline columns
 const COLOR_OPTIONS = [
@@ -35,196 +36,6 @@ const COLOR_OPTIONS = [
   { value: 'bg-amber-500/20', label: 'Amber', preview: 'bg-amber-500' },
   { value: 'bg-indigo-500/20', label: 'Indigo', preview: 'bg-indigo-500' },
 ];
-
-// Pre-built step templates with well-designed prompts
-const STEP_TEMPLATES = [
-  {
-    id: 'code-review',
-    name: 'Code Review',
-    colorClass: 'bg-blue-500/20',
-    instructions: `## Code Review
-
-Please perform a thorough code review of the changes made in this feature. Focus on:
-
-### Code Quality
-- **Readability**: Is the code easy to understand? Are variable/function names descriptive?
-- **Maintainability**: Will this code be easy to modify in the future?
-- **DRY Principle**: Is there any duplicated code that should be abstracted?
-- **Single Responsibility**: Do functions and classes have a single, clear purpose?
-
-### Best Practices
-- Follow established patterns and conventions used in the codebase
-- Ensure proper error handling is in place
-- Check for appropriate logging where needed
-- Verify that magic numbers/strings are replaced with named constants
-
-### Performance
-- Identify any potential performance bottlenecks
-- Check for unnecessary re-renders (React) or redundant computations
-- Ensure efficient data structures are used
-
-### Testing
-- Verify that new code has appropriate test coverage
-- Check that edge cases are handled
-
-### Action Required
-After reviewing, make any necessary improvements directly. If you find issues:
-1. Fix them immediately if they are straightforward
-2. For complex issues, document them clearly with suggested solutions
-
-Provide a brief summary of changes made or issues found.`,
-  },
-  {
-    id: 'security-review',
-    name: 'Security Review',
-    colorClass: 'bg-red-500/20',
-    instructions: `## Security Review
-
-Perform a comprehensive security audit of the changes made in this feature. Check for vulnerabilities in the following areas:
-
-### Input Validation & Sanitization
-- Verify all user inputs are properly validated and sanitized
-- Check for SQL injection vulnerabilities
-- Check for XSS (Cross-Site Scripting) vulnerabilities
-- Ensure proper encoding of output data
-
-### Authentication & Authorization
-- Verify authentication checks are in place where needed
-- Ensure authorization logic correctly restricts access
-- Check for privilege escalation vulnerabilities
-- Verify session management is secure
-
-### Data Protection
-- Ensure sensitive data is not logged or exposed
-- Check that secrets/credentials are not hardcoded
-- Verify proper encryption is used for sensitive data
-- Check for secure transmission of data (HTTPS, etc.)
-
-### Common Vulnerabilities (OWASP Top 10)
-- Injection flaws
-- Broken authentication
-- Sensitive data exposure
-- XML External Entities (XXE)
-- Broken access control
-- Security misconfiguration
-- Cross-Site Scripting (XSS)
-- Insecure deserialization
-- Using components with known vulnerabilities
-- Insufficient logging & monitoring
-
-### Action Required
-1. Fix any security vulnerabilities immediately
-2. For complex security issues, document them with severity levels
-3. Add security-related comments where appropriate
-
-Provide a security assessment summary with any issues found and fixes applied.`,
-  },
-  {
-    id: 'testing',
-    name: 'Testing',
-    colorClass: 'bg-green-500/20',
-    instructions: `## Testing Step
-
-Please ensure comprehensive test coverage for the changes made in this feature.
-
-### Unit Tests
-- Write unit tests for all new functions and methods
-- Ensure edge cases are covered
-- Test error handling paths
-- Aim for high code coverage on new code
-
-### Integration Tests
-- Test interactions between components/modules
-- Verify API endpoints work correctly
-- Test database operations if applicable
-
-### Test Quality
-- Tests should be readable and well-documented
-- Each test should have a clear purpose
-- Use descriptive test names that explain the scenario
-- Follow the Arrange-Act-Assert pattern
-
-### Run Tests
-After writing tests, run the full test suite and ensure:
-1. All new tests pass
-2. No existing tests are broken
-3. Test coverage meets project standards
-
-Provide a summary of tests added and any issues found during testing.`,
-  },
-  {
-    id: 'documentation',
-    name: 'Documentation',
-    colorClass: 'bg-amber-500/20',
-    instructions: `## Documentation Step
-
-Please ensure all changes are properly documented.
-
-### Code Documentation
-- Add/update JSDoc or docstrings for new functions and classes
-- Document complex algorithms or business logic
-- Add inline comments for non-obvious code
-
-### API Documentation
-- Document any new or modified API endpoints
-- Include request/response examples
-- Document error responses
-
-### README Updates
-- Update README if new setup steps are required
-- Document any new environment variables
-- Update architecture diagrams if applicable
-
-### Changelog
-- Document notable changes for the changelog
-- Include breaking changes if any
-
-Provide a summary of documentation added or updated.`,
-  },
-  {
-    id: 'optimization',
-    name: 'Performance Optimization',
-    colorClass: 'bg-cyan-500/20',
-    instructions: `## Performance Optimization Step
-
-Review and optimize the performance of the changes made in this feature.
-
-### Code Performance
-- Identify and optimize slow algorithms (O(n²) → O(n log n), etc.)
-- Remove unnecessary computations or redundant operations
-- Optimize loops and iterations
-- Use appropriate data structures
-
-### Memory Usage
-- Check for memory leaks
-- Optimize memory-intensive operations
-- Ensure proper cleanup of resources
-
-### Database/API
-- Optimize database queries (add indexes, reduce N+1 queries)
-- Implement caching where appropriate
-- Batch API calls when possible
-
-### Frontend (if applicable)
-- Minimize bundle size
-- Optimize render performance
-- Implement lazy loading where appropriate
-- Use memoization for expensive computations
-
-### Action Required
-1. Profile the code to identify bottlenecks
-2. Apply optimizations
-3. Measure improvements
-
-Provide a summary of optimizations applied and performance improvements achieved.`,
-  },
-];
-
-// Helper to get template color class
-const getTemplateColorClass = (templateId: string): string => {
-  const template = STEP_TEMPLATES.find((t) => t.id === templateId);
-  return template?.colorClass || COLOR_OPTIONS[0].value;
-};
 
 interface PipelineSettingsDialogProps {
   open: boolean;
@@ -245,7 +56,7 @@ interface EditingStep {
 export function PipelineSettingsDialog({
   open,
   onClose,
-  projectPath,
+  projectPath: _projectPath,
   pipelineConfig,
   onSave,
 }: PipelineSettingsDialogProps) {
@@ -335,7 +146,7 @@ export function PipelineSettingsDialog({
       const content = await file.text();
       setEditingStep((prev) => (prev ? { ...prev, instructions: content } : null));
       toast.success('Instructions loaded from file');
-    } catch (error) {
+    } catch {
       toast.error('Failed to load file');
     }
 
@@ -470,7 +281,7 @@ export function PipelineSettingsDialog({
       await onSave(config);
       toast.success('Pipeline configuration saved');
       onClose();
-    } catch (error) {
+    } catch {
       toast.error('Failed to save pipeline configuration');
     } finally {
       setIsSubmitting(false);

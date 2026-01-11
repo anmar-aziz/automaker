@@ -461,7 +461,7 @@ export interface FeaturesAPI {
     featureId: string,
     updates: Partial<Feature>,
     descriptionHistorySource?: 'enhance' | 'edit',
-    enhancementMode?: 'improve' | 'technical' | 'simplify' | 'acceptance'
+    enhancementMode?: 'improve' | 'technical' | 'simplify' | 'acceptance' | 'ux-reviewer'
   ) => Promise<{ success: boolean; feature?: Feature; error?: string }>;
   delete: (projectPath: string, featureId: string) => Promise<{ success: boolean; error?: string }>;
   getAgentOutput: (
@@ -532,6 +532,9 @@ export interface AutoModeAPI {
     editedPlan?: string,
     feedback?: string
   ) => Promise<{ success: boolean; error?: string }>;
+  resumeInterrupted: (
+    projectPath: string
+  ) => Promise<{ success: boolean; message?: string; error?: string }>;
   onEvent: (callback: (event: AutoModeEvent) => void) => () => void;
 }
 
@@ -2067,6 +2070,11 @@ function createMockAutoModeAPI(): AutoModeAPI {
         feedback,
       });
       return { success: true };
+    },
+
+    resumeInterrupted: async (projectPath: string) => {
+      console.log('[Mock] Resume interrupted features for:', projectPath);
+      return { success: true, message: 'Mock: no interrupted features' };
     },
 
     onEvent: (callback: (event: AutoModeEvent) => void) => {

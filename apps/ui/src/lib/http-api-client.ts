@@ -1449,7 +1449,7 @@ export class HttpApiClient implements ElectronAPI {
       featureId: string,
       updates: Partial<Feature>,
       descriptionHistorySource?: 'enhance' | 'edit',
-      enhancementMode?: 'improve' | 'technical' | 'simplify' | 'acceptance'
+      enhancementMode?: 'improve' | 'technical' | 'simplify' | 'acceptance' | 'ux-reviewer'
     ) =>
       this.post('/api/features/update', {
         projectPath,
@@ -1533,6 +1533,8 @@ export class HttpApiClient implements ElectronAPI {
         editedPlan,
         feedback,
       }),
+    resumeInterrupted: (projectPath: string) =>
+      this.post('/api/auto-mode/resume-interrupted', { projectPath }),
     onEvent: (callback: (event: AutoModeEvent) => void) => {
       return this.subscribeToEvent('auto-mode:event', callback as EventCallback);
     },

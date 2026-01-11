@@ -300,6 +300,17 @@ export type AutoModeEvent =
       featureId: string;
       projectPath?: string;
       phaseNumber: number;
+    }
+  | {
+      type: 'auto_mode_resuming_features';
+      message: string;
+      projectPath?: string;
+      featureIds: string[];
+      features: Array<{
+        id: string;
+        title?: string;
+        status?: string;
+      }>;
     };
 
 export type SpecRegenerationEvent =
