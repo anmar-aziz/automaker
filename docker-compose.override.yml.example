@@ -19,6 +19,7 @@ services:
       # OpenCode CLI - mount your ~/.local/share/opencode directory
       # This shares your 'opencode auth login' session with the container
       # - ~/.local/share/opencode:/home/automaker/.local/share/opencode
+      # - ~/.config/opencode:/home/automaker/.config/opencode
 
     environment:
       # Set root directory for all projects and file operations
