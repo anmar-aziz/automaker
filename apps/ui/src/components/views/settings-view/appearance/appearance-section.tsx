@@ -1,12 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Palette, Moon, Sun, Type } from 'lucide-react';
 import { darkThemes, lightThemes } from '@/config/theme-options';
 import {
@@ -16,6 +9,7 @@ import {
 } from '@/config/ui-font-options';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/app-store';
+import { FontSelector } from '@/components/shared';
 import type { Theme } from '../shared/types';
 
 interface AppearanceSectionProps {
@@ -165,25 +159,13 @@ export function AppearanceSection({ effectiveTheme, onThemeChange }: AppearanceS
               <Label htmlFor="global-ui-font-select" className="text-sm">
                 UI Font
               </Label>
-              <Select value={fontSansValue} onValueChange={handleFontSansChange}>
-                <SelectTrigger id="global-ui-font-select" className="w-full">
-                  <SelectValue placeholder="Default (Geist Sans)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {UI_SANS_FONT_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <span
-                        style={{
-                          fontFamily:
-                            option.value === DEFAULT_FONT_VALUE ? undefined : option.value,
-                        }}
-                      >
-                        {option.label}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FontSelector
+                id="global-ui-font-select"
+                value={fontSansValue}
+                options={UI_SANS_FONT_OPTIONS}
+                placeholder="Default (Geist Sans)"
+                onChange={handleFontSansChange}
+              />
               <p className="text-xs text-muted-foreground">
                 Used for headings, labels, and UI text
               </p>
@@ -194,25 +176,13 @@ export function AppearanceSection({ effectiveTheme, onThemeChange }: AppearanceS
               <Label htmlFor="global-code-font-select" className="text-sm">
                 Code Font
               </Label>
-              <Select value={fontMonoValue} onValueChange={handleFontMonoChange}>
-                <SelectTrigger id="global-code-font-select" className="w-full">
-                  <SelectValue placeholder="Default (Geist Mono)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {UI_MONO_FONT_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <span
-                        style={{
-                          fontFamily:
-                            option.value === DEFAULT_FONT_VALUE ? undefined : option.value,
-                        }}
-                      >
-                        {option.label}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FontSelector
+                id="global-code-font-select"
+                value={fontMonoValue}
+                options={UI_MONO_FONT_OPTIONS}
+                placeholder="Default (Geist Mono)"
+                onChange={handleFontMonoChange}
+              />
               <p className="text-xs text-muted-foreground">
                 Used for code blocks and monospaced text
               </p>

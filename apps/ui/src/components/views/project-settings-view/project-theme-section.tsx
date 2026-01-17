@@ -1,13 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Palette, Moon, Sun, Type } from 'lucide-react';
 import { darkThemes, lightThemes, type Theme } from '@/config/theme-options';
 import {
@@ -17,6 +10,7 @@ import {
 } from '@/config/ui-font-options';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/app-store';
+import { FontSelector } from '@/components/shared';
 import type { Project } from '@/lib/electron';
 
 interface ProjectThemeSectionProps {
@@ -305,25 +299,13 @@ export function ProjectThemeSection({ project }: ProjectThemeSectionProps) {
                   <Label htmlFor="ui-font-select" className="text-sm">
                     Project UI Font
                   </Label>
-                  <Select value={fontSansLocal} onValueChange={handleFontSansChange}>
-                    <SelectTrigger id="ui-font-select" className="w-full">
-                      <SelectValue placeholder="Default (Geist Sans)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {UI_SANS_FONT_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          <span
-                            style={{
-                              fontFamily:
-                                option.value === DEFAULT_FONT_VALUE ? undefined : option.value,
-                            }}
-                          >
-                            {option.label}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FontSelector
+                    id="ui-font-select"
+                    value={fontSansLocal}
+                    options={UI_SANS_FONT_OPTIONS}
+                    placeholder="Default (Geist Sans)"
+                    onChange={handleFontSansChange}
+                  />
                 </div>
               )}
             </div>
@@ -358,25 +340,13 @@ export function ProjectThemeSection({ project }: ProjectThemeSectionProps) {
                   <Label htmlFor="code-font-select" className="text-sm">
                     Project Code Font
                   </Label>
-                  <Select value={fontMonoLocal} onValueChange={handleFontMonoChange}>
-                    <SelectTrigger id="code-font-select" className="w-full">
-                      <SelectValue placeholder="Default (Geist Mono)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {UI_MONO_FONT_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          <span
-                            style={{
-                              fontFamily:
-                                option.value === DEFAULT_FONT_VALUE ? undefined : option.value,
-                            }}
-                          >
-                            {option.label}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FontSelector
+                    id="code-font-select"
+                    value={fontMonoLocal}
+                    options={UI_MONO_FONT_OPTIONS}
+                    placeholder="Default (Geist Mono)"
+                    onChange={handleFontMonoChange}
+                  />
                 </div>
               )}
             </div>

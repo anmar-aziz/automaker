@@ -150,6 +150,31 @@ export function getStoredTheme(): ThemeMode | null {
 }
 
 /**
+ * Helper to get effective font value with validation
+ * Returns the font to use (project override -> global -> null for default)
+ * @param projectFont - The project-specific font override
+ * @param globalFont - The global font setting
+ * @param fontOptions - The list of valid font options for validation
+ */
+function getEffectiveFont(
+  projectFont: string | undefined,
+  globalFont: string | null,
+  fontOptions: readonly { value: string; label: string }[]
+): string | null {
+  const isValidFont = (font: string | null | undefined): boolean => {
+    if (!font || font === DEFAULT_FONT_VALUE) return true;
+    return fontOptions.some((opt) => opt.value === font);
+  };
+
+  if (projectFont) {
+    if (!isValidFont(projectFont)) return null; // Fallback to default if font not in list
+    return projectFont === DEFAULT_FONT_VALUE ? null : projectFont;
+  }
+  if (!isValidFont(globalFont)) return null; // Fallback to default if font not in list
+  return globalFont === DEFAULT_FONT_VALUE ? null : globalFont;
+}
+
+/**
  * Save theme to localStorage for immediate persistence
  * This is used as a fallback when server settings can't be loaded
  */
@@ -1873,43 +1898,13 @@ export const useAppStore = create<AppState & AppActions>()((set, get) => ({
   },
 
   getEffectiveFontSans: () => {
-    const currentProject = get().currentProject;
-    // Return project override if set, otherwise global, otherwise null for default
-    // 'default' value means explicitly using default font, so return null for CSS
-    // Also validate that the font is in the available options list
-    const isValidFont = (font: string | null | undefined): boolean => {
-      if (!font || font === DEFAULT_FONT_VALUE) return true;
-      return UI_SANS_FONT_OPTIONS.some((opt) => opt.value === font);
-    };
-
-    if (currentProject?.fontFamilySans) {
-      const font = currentProject.fontFamilySans;
-      if (!isValidFont(font)) return null; // Fallback to default if font not in list
-      return font === DEFAULT_FONT_VALUE ? null : font;
-    }
-    const globalFont = get().fontFamilySans;
-    if (!isValidFont(globalFont)) return null; // Fallback to default if font not in list
-    return globalFont === DEFAULT_FONT_VALUE ? null : globalFont;
+    const { currentProject, fontFamilySans } = get();
+    return getEffectiveFont(currentProject?.fontFamilySans, fontFamilySans, UI_SANS_FONT_OPTIONS);
   },
 
   getEffectiveFontMono: () => {
-    const currentProject = get().currentProject;
-    // Return project override if set, otherwise global, otherwise null for default
-    // 'default' value means explicitly using default font, so return null for CSS
-    // Also validate that the font is in the available options list
-    const isValidFont = (font: string | null | undefined): boolean => {
-      if (!font || font === DEFAULT_FONT_VALUE) return true;
-      return UI_MONO_FONT_OPTIONS.some((opt) => opt.value === font);
-    };
-
-    if (currentProject?.fontFamilyMono) {
-      const font = currentProject.fontFamilyMono;
-      if (!isValidFont(font)) return null; // Fallback to default if font not in list
-      return font === DEFAULT_FONT_VALUE ? null : font;
-    }
-    const globalFont = get().fontFamilyMono;
-    if (!isValidFont(globalFont)) return null; // Fallback to default if font not in list
-    return globalFont === DEFAULT_FONT_VALUE ? null : globalFont;
+    const { currentProject, fontFamilyMono } = get();
+    return getEffectiveFont(currentProject?.fontFamilyMono, fontFamilyMono, UI_MONO_FONT_OPTIONS);
   },
 
   // Feature actions
