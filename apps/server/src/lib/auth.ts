@@ -320,6 +320,15 @@ function checkAuthentication(
     return { authenticated: false, errorType: 'invalid_api_key' };
   }
 
+  // Check for session token in query parameter (web mode - needed for image loads)
+  const queryToken = query.token;
+  if (queryToken) {
+    if (validateSession(queryToken)) {
+      return { authenticated: true };
+    }
+    return { authenticated: false, errorType: 'invalid_session' };
+  }
+
   // Check for session cookie (web mode)
   const sessionToken = cookies[SESSION_COOKIE_NAME];
   if (sessionToken && validateSession(sessionToken)) {
@@ -335,8 +344,9 @@ function checkAuthentication(
  * Accepts either:
  * 1. X-API-Key header (for Electron mode)
  * 2. X-Session-Token header (for web mode with explicit token)
- * 3. apiKey query parameter (fallback for cases where headers can't be set)
- * 4. Session cookie (for web mode)
+ * 3. apiKey query parameter (fallback for Electron, cases where headers can't be set)
+ * 4. token query parameter (fallback for web mode, needed for image loads via CSS/img tags)
+ * 5. Session cookie (for web mode)
  */
 export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
   const result = checkAuthentication(

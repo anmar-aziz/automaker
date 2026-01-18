@@ -1,7 +1,7 @@
 /**
  * GET /image endpoint - Serve image files
  *
- * Requires authentication via:
+ * Requires authentication via auth middleware:
  * - apiKey query parameter (Electron mode)
  * - token query parameter (web mode)
  * - session cookie (web mode)
@@ -13,21 +13,11 @@ import type { Request, Response } from 'express';
 import * as secureFs from '../../../lib/secure-fs.js';
 import path from 'path';
 import { PathNotAllowedError } from '@automaker/platform';
-import { validateApiKey, validateSession } from '../../../lib/auth.js';
 import { getErrorMessage, logError } from '../common.js';
-
-const SESSION_COOKIE_NAME = 'automaker_session';
 
 export function createImageHandler() {
   return async (req: Request, res: Response): Promise<void> => {
     try {
-      // Authenticate the request
-      const isAuthenticated = checkImageAuthentication(req);
-      if (!isAuthenticated) {
-        res.status(401).json({ success: false, error: 'Authentication required' });
-        return;
-      }
-
       const { path: imagePath, projectPath } = req.query as {
         path?: string;
         projectPath?: string;
@@ -80,42 +70,4 @@ export function createImageHandler() {
       res.status(500).json({ success: false, error: getErrorMessage(error) });
     }
   };
-}
-
-/**
- * Check if image request is authenticated
- * Supports multiple authentication methods
- */
-function checkImageAuthentication(req: Request): boolean {
-  // Check for API key in header (Electron mode)
-  const headerKey = req.get('x-api-key');
-  if (headerKey && validateApiKey(headerKey)) {
-    return true;
-  }
-
-  // Check for session token in header (web mode)
-  const sessionTokenHeader = req.get('x-session-token');
-  if (sessionTokenHeader && validateSession(sessionTokenHeader)) {
-    return true;
-  }
-
-  // Check for API key in query parameter (fallback)
-  const queryKey = req.query.apiKey as string | undefined;
-  if (queryKey && validateApiKey(queryKey)) {
-    return true;
-  }
-
-  // Check for session token in query parameter (web mode with token)
-  const queryToken = req.query.token as string | undefined;
-  if (queryToken && validateSession(queryToken)) {
-    return true;
-  }
-
-  // Check for session cookie (web mode)
-  const sessionCookie = req.cookies?.[SESSION_COOKIE_NAME];
-  if (sessionCookie && validateSession(sessionCookie)) {
-    return true;
-  }
-
-  return false;
 }
